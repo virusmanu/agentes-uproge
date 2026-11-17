@@ -113,6 +113,9 @@ def ejecucion(K,path,s,t,av):
         out['_ue']=None
         cf=None
     rg=[K.reg.get((s,v)) for v in llave]
+    if cf is not None and s=='05 CONAF' and not any(k[0]==s and str(k[1]).isdigit() for k in K.reg):
+        av.append(('Revisar','05 CONAF: el Catálogo Maestro no trae las regiones por código C.F. (versión 1.4). Instale el catálogo actualizado: '
+                             'con el catálogo anterior la distribución regional de CONAF queda errada en 12 oficinas'))
     if cf is not None and any((s,c) in K.reg for c in cf.dropna().unique()):
         rc=[K.reg.get((s,c)) for c in cf]
         dist=sorted({f'C.F. {c} {v}: catálogo por código {x[0]}, por nombre {y[0]}' for c,v,x,y in zip(cf,llave,rc,rg) if x and y and x[0]!=y[0]})
