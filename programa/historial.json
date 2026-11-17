@@ -1,5 +1,18 @@
 [
  {
+  "version": "1.6",
+  "fecha": "17-11-2026",
+  "tipo": "Menor",
+  "resumen": "Revisión del consolidado con semáforo y hoja de control.",
+  "detalle": [
+   "Controles sobre el devengado: cuadratura con el informe bruto, devengo sobre el vigente, devengo menor que el mes anterior, saltos del mes, asignaciones sin ejecución y glosas.",
+   "Controles de la Partida: decretos con fechas distintas entre planillas y transferencias de SUBSE a INDAP y SAG que no cuadran con lo que reciben.",
+   "Los rojos se corrigen en el origen o se aceptan con un comentario; la hoja de control para la jefatura se exporta solo sin rojos sin explicar.",
+   "La revisión se guarda en archivos aparte: el consolidado que lee Power BI y el Catálogo Maestro no se tocan.",
+   "Umbrales ajustables en Reglas de revisión.xlsx."
+  ]
+ },
+ {
   "version": "1.5",
   "fecha": "17-11-2026",
   "tipo": "Menor",

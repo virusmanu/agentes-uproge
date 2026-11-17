@@ -136,6 +136,7 @@ def ejecucion(K,path,s,t,av):
         av.append(('Revisar',f'{s} {t}: programas que no están en la hoja "Programas" del catálogo; se aplicó el tratamiento por defecto ({"sumados a P01" if ok else "excluidos"}). Agréguelos al catálogo: {"; ".join(nuevos)}'))
     out['Programa']=[p if x in ('Incluir','Sumar a P01') and p else None for x,p in tr]
     exc=out[out.Programa.isna()]
+    CUADRATURA[(s,t)]={'Devengo informe':float(out['Monto Devengo'].sum()),'Devengo excluido por programa':float(exc['Monto Devengo'].sum())}
     if len(exc): av.append(('Info',f'{s} {t}: {len(exc)} filas excluidas por programa (Devengo {exc["Monto Devengo"].sum():,.0f}; Requerimiento {exc["Monto Requerimiento"].sum():,.0f} miles de $)'.replace(',','.')))
     out=out[out.Programa.notna()].copy(); cat=cat.loc[out.index]
     out['Subtítulo']=cat.str[:2]; out['Ítem']=cat.str[:4]; out['Asignación']=cat.str[:7]; out['Subasignación']=cat.str[:10]
@@ -258,8 +259,10 @@ def ubicar_archivos(carpeta):
         raise ErrorAgente(' | '.join(msg)+f'\nCarpeta revisada: {carpeta}\nCada archivo debe empezar con el número del servicio y decir Gastos o Ingresos, p.ej. "05 CONAF Gastos a Octubre.xlsx".')
     return {k:v[0] for k,v in hall.items()}
 
+CUADRATURA={}   # devengo leído de cada informe bruto, para el control de cuadratura de la revisión
+
 def generar(K,carpeta_mes,pvs,corte,ideas_df,log=print):
-    av=[]; E=[]; GE=[]; P=[]; GP=[]; ctrl=[]
+    av=[]; E=[]; GE=[]; P=[]; GP=[]; ctrl=[]; CUADRATURA.clear()
     arch=ubicar_archivos(carpeta_mes); R=registro_decretos(pvs)
     for s in SERV:
         for t in ('Gastos','Ingresos'):

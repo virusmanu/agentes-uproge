@@ -42,6 +42,11 @@ def main():
     rev = [x for x in av if x[0] == 'Revisar']
     print(f'\nAvisos: {len(av)} ({len(rev)} para revisar). Ver hoja "Control".')
     for _, t in rev: print('  * ' + t)
+    if r.get('revision') is not None:
+        import revision as RV
+        rs = RV.resumen(r['revision'])
+        print(f'\nRevisión: {rs["rojos"]} rojo(s) ({rs["rojos_pendientes"]} sin explicar) y {rs["amarillos"]} amarillo(s). Detalle en:\n  {r["ruta_revision"]}')
+        print('  Para comentar las alertas y exportar la hoja de control use la versión de ventana (pestaña Revisión).')
     if val is not None:
         print('\nComparación con el consolidado oficial (hoja "Validación"):'); print(val.to_string(index=False))
 

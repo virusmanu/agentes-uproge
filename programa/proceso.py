@@ -5,6 +5,7 @@ warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 import pandas as pd
 from motor import *
 import ideas as IF
+import revision as RV
 
 def _version():
     try:
@@ -131,7 +132,7 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
     log(texto): mensajes de avance. paso(n, total, texto): para barras de progreso."""
     nombre = f'{MESES[m-1]} {anio}'
     carpeta = carpeta or carpeta_del_mes(cfg['carpeta_informes'], anio, m)
-    TOTAL = 22; n = [0]
+    TOTAL = 23; n = [0]
     def avanzar(t):
         n[0] += 1; paso(min(n[0], TOTAL), TOTAL, t); log(t)
     avanzar('Leyendo el Catálogo Maestro y las planillas de Presupuesto Vigente')
@@ -146,7 +147,7 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
     base_df, bg, _, ctrl, av = generar(K, carpeta, pvs, corte, None, log=log_motor)
 
     avanzar('Redactando el borrador de Ideas Fuerza')
-    prev = prev_g = None; fi_prev = 'sin mes anterior (enero)'; corte_prev = None
+    prev = prev_g = None; fi_prev = 'sin mes anterior (enero)'; corte_prev = None; cprev = None
     if m > 1:
         cprev = carpeta_del_mes_o_none(cfg['carpeta_informes'], anio, m - 1)
         pprev = IF.consolidado_de(cprev) if cprev else None
@@ -195,8 +196,19 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
                          ('Filas Base Consolidada', len(base_df)), ('Filas Base Glosas', len(bg))], columns=['Dato', 'Valor'])
     avdf = pd.DataFrame(av or [('OK', 'Sin observaciones')], columns=['Tipo', 'Aviso'])
     escribir_salida(salida, base_df, bg, ideas, respaldo, ideas_of, info, ctrl, avdf, val, det)
+    avanzar('Revisando el consolidado (controles de devengo)')
+    rev = None
+    try:
+        rev = RV.revisar(base_df, bg, prev, anio, m, carpeta, cprev, CUADRATURA, pvs, corte)
+    except PermissionError as e:
+        av.append(('Revisar', str(e)))
+    except Exception as e:
+        import traceback
+        log('No se pudo completar la revisión; el consolidado quedó guardado igual:\n' + traceback.format_exc())
+        av.append(('Revisar', f'No se pudo completar la revisión ({type(e).__name__}: {e}). El consolidado quedó guardado igual'))
     paso(TOTAL, TOTAL, 'Listo')
-    return {'salida': salida, 'carpeta': carpeta, 'ctrl': ctrl, 'avisos': av, 'validacion': val, 'detalle': det,
+    return {'revision': rev, 'ruta_revision': RV.ruta_revision(carpeta, anio, m), 'anio': anio, 'mes': m,
+            'salida': salida, 'carpeta': carpeta, 'ctrl': ctrl, 'avisos': av, 'validacion': val, 'detalle': det,
             'ideas': ideas, 'oficial': oficial, 'corte': corte, 'origen_corte': origen_corte, 'nombre': nombre}
 
 def escribir_salida(salida, base_df, bg, ideas, respaldo, ideas_of, info, ctrl, avdf, val, det):

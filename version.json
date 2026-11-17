@@ -1,10 +1,13 @@
 {
   "programa": "Agentes de Apoyo a la Gestión – UPROGE",
-  "version": "1.5",
+  "version": "1.6",
   "fecha": "17-11-2026",
   "cambios": [
-    "El botón Historial de versiones muestra un resumen de los cambios de cada versión en una ventana, en vez de abrir el PDF",
-    "Desde esa ventana se puede abrir el historial completo en PDF, si está en la carpeta del agente"
+    "Pestaña Revisión: controles con semáforo sobre el devengado (cuadratura, devengo sobre vigente, retrocesos, saltos, sin ejecución y glosas)",
+    "Controles nuevos de consistencia de la Partida: decretos registrados con fechas distintas entre planillas y transferencias intrapartida descuadradas (SUBSE → INDAP y SAG)",
+    "Las alertas en rojo se corrigen en el origen o se aceptan con comentario; la hoja de control para la jefatura solo se exporta sin rojos sin explicar",
+    "Todo queda en archivos aparte (Revisión y Hoja de control); el consolidado que lee Power BI y el Catálogo Maestro no se modifican",
+    "Umbrales en Reglas de revisión.xlsx, junto al programa"
   ],
   "actualiza_catalogo": false
 }

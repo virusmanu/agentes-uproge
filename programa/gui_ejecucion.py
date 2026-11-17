@@ -3,11 +3,12 @@ Se abre desde la ventana de bienvenida (inicio.py). Usa el mismo proceso que la 
 import os, sys, json, threading, queue, traceback, subprocess, datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, font as tkfont
+from tkinter import ttk, filedialog, messagebox, simpledialog, font as tkfont
 
 try:
     from proceso import *
     import actualizador as ACT
+    import revision as RV
     ERROR_INICIO = None
 except Exception as e:  # p.ej. faltan componentes
     ERROR_INICIO = e
@@ -158,7 +159,7 @@ class App(tk.Tk):
         t3 = self._tarjeta(izq, 3, 'Generar el consolidado')
         self.btn_generar = ttk.Button(t3, text='Generar consolidado', style='Primario.TButton', command=self.generar)
         self.btn_generar.pack(fill='x')
-        self.prog = ttk.Progressbar(t3, mode='determinate', maximum=22, style='Horizontal.TProgressbar'); self.prog.pack(fill='x', pady=(10, 4))
+        self.prog = ttk.Progressbar(t3, mode='determinate', maximum=23, style='Horizontal.TProgressbar'); self.prog.pack(fill='x', pady=(10, 4))
         self.lbl_prog = ttk.Label(t3, text='Listo para comenzar.', style='Suave.TLabel', wraplength=380); self.lbl_prog.pack(anchor='w')
 
         # Resultados
@@ -181,6 +182,27 @@ class App(tk.Tk):
         self.txt_av.pack(fill='both', expand=True)
         self.txt_av.tag_configure('rev', foreground='#b02a37', font=self.f['neg']); self.txt_av.tag_configure('info', foreground=GRIS_SUAVE)
         self.txt_av.tag_configure('ok', foreground=VERDE, font=self.f['neg'])
+        # pestaña revisión
+        pr = ttk.Frame(self.nb, style='Tarjeta.TFrame', padding=(0, 6)); self.nb.add(pr, text='Revisión')
+        self.lbl_rev = ttk.Label(pr, text='Se completa al generar el consolidado.', style='Suave.TLabel', wraplength=560)
+        self.lbl_rev.pack(anchor='w', pady=(0, 4))
+        fr = tk.Frame(pr, bg=BLANCO); fr.pack(fill='both', expand=True)
+        cols = ('niv', 'ctl', 'srv', 'det', 'est')
+        self.tv_rev = ttk.Treeview(fr, columns=cols, show='headings', height=6, selectmode='extended')
+        for c, t, w, st in (('niv', '', 24, False), ('ctl', 'Control', 150, False), ('srv', 'Servicio', 105, False),
+                            ('det', 'Detalle', 190, True), ('est', 'Estado', 90, False)):
+            self.tv_rev.heading(c, text=t, anchor='w'); self.tv_rev.column(c, width=w, minwidth=w if not st else 120, anchor='w', stretch=st)
+        sb = ttk.Scrollbar(fr, orient='vertical', command=self.tv_rev.yview); self.tv_rev.configure(yscrollcommand=sb.set)
+        sb.pack(side='right', fill='y'); self.tv_rev.pack(side='left', fill='both', expand=True)
+        self.tv_rev.tag_configure('Rojo', foreground='#b02a37'); self.tv_rev.tag_configure('Amarillo', foreground='#8a6d00')
+        self.tv_rev.tag_configure('ok', foreground=GRIS_SUAVE)
+        self.tv_rev.bind('<Double-1>', lambda e: self.ver_alerta())
+        br = tk.Frame(pr, bg=BLANCO); br.pack(fill='x', pady=(6, 0))
+        self.btn_aceptar = ttk.Button(br, text='Aceptar…', style='Secundario.TButton', command=self.aceptar_alertas); self.btn_aceptar.pack(side='left')
+        self.btn_quitar = ttk.Button(br, text='Quitar', style='Secundario.TButton', command=self.quitar_aceptacion); self.btn_quitar.pack(side='left', padx=6)
+        self.btn_rev_xls = ttk.Button(br, text='Abrir revisión', style='Secundario.TButton', command=lambda: self.resultado and abrir(self.resultado['ruta_revision'])); self.btn_rev_xls.pack(side='left')
+        self.btn_hoja = ttk.Button(br, text='Hoja de control', style='Secundario.TButton', command=self.exportar_hoja); self.btn_hoja.pack(side='right')
+        for w in (self.btn_aceptar, self.btn_quitar, self.btn_rev_xls, self.btn_hoja): w.state(['disabled'])
         # pestaña validación
         p3 = ttk.Frame(self.nb, style='Tarjeta.TFrame', padding=(0, 8)); self.nb.add(p3, text='Comparación')
         self.tv_val = ttk.Treeview(p3, columns=('niv', 'n', 'd'), show='headings', height=6)
@@ -446,9 +468,82 @@ class App(tk.Tk):
             self.lbl_val.configure(text='Diferencias mayores a 1 (miles de pesos). El detalle de cada una está en la hoja "Validación" del Excel generado.')
         else:
             self.lbl_val.configure(text='No hay consolidado oficial del mes, por lo que no se hizo la comparación.')
-        self.nb.select(1 if rev else 0)
+        self.mostrar_revision()
+        rs = RV.resumen(r['revision']) if r.get('revision') is not None else None
+        self.nb.select(2 if rs and rs['rojos_pendientes'] else (1 if rev else 0))
         messagebox.showinfo('Listo', f'Se generó el consolidado de {r["nombre"]}.\n\n{os.path.basename(r["salida"])}\n\n'
-                            + (f'Hay {len(rev)} aviso(s) para revisar.' if rev else 'No hay avisos para revisar.'))
+                            + (f'Hay {len(rev)} aviso(s) para revisar.' if rev else 'No hay avisos para revisar.')
+                            + (f'\n\nRevisión: {rs["rojos_pendientes"]} rojo(s) sin explicar y {rs["amarillos_pendientes"]} amarillo(s).' if rs else ''))
+
+    # ---------------------------------------------------------------- revisión
+    def mostrar_revision(self):
+        r = self.resultado; d = r.get('revision') if r else None
+        self.tv_rev.delete(*self.tv_rev.get_children())
+        if d is None:
+            self.lbl_rev.configure(text='No se pudo completar la revisión (ver Avisos).'); self.nb.tab(2, text='Revisión')
+            for w in (self.btn_aceptar, self.btn_quitar, self.btn_rev_xls, self.btn_hoja): w.state(['disabled'])
+            return
+        for i, x in d.iterrows():
+            ok = str(x.Estado).startswith('Aceptada')
+            self.tv_rev.insert('', 'end', iid=str(i), values=('●', x.Control, f'{x.Servicio} {str(x.Programa).split(" - ")[0]}'.strip(), x.Detalle,
+                                                              x.Estado), tags=('ok',) if ok else (x.Nivel,))
+        rs = RV.resumen(d)
+        self.lbl_rev.configure(text=f'{rs["rojos"]} rojo(s) · {rs["amarillos"]} amarillo(s) · {rs["aceptadas"]} aceptada(s) con comentario. '
+                                    + ('Quedan rojos sin explicar: corríjalos en el origen y vuelva a generar, o acéptelos con un comentario.' if rs['rojos_pendientes']
+                                       else 'No quedan rojos sin explicar: puede exportar la hoja de control.') + '  Doble clic para ver el detalle.')
+        self.nb.tab(2, text=f'Revisión ({rs["rojos_pendientes"]} rojos)' if rs['rojos_pendientes'] else 'Revisión ✔')
+        for w in (self.btn_aceptar, self.btn_quitar, self.btn_rev_xls): w.state(['!disabled'])
+        self.btn_hoja.state(['disabled'] if rs['rojos_pendientes'] else ['!disabled'])
+        self.btn_hoja.configure(style='Secundario.TButton' if rs['rojos_pendientes'] else 'Primario.TButton')
+
+    def _seleccion(self):
+        return [int(i) for i in self.tv_rev.selection()]
+
+    def ver_alerta(self):
+        sel = self._seleccion()
+        if not sel: return
+        x = self.resultado['revision'].loc[sel[0]]
+        txt = f'{x.Nivel} · {x.Control}\n{x.Servicio} {x.Programa}\n{x["Código"]} {x.Nombre}\n\n{x.Detalle}\n\nEstado: {x.Estado}'
+        if x.Comentario: txt += f'\nComentario: {x.Comentario} ({x.Usuario}, {x.Fecha})'
+        messagebox.showinfo('Detalle de la alerta', txt)
+
+    def aceptar_alertas(self):
+        sel = self._seleccion()
+        if not sel:
+            messagebox.showinfo('Elija alertas', 'Seleccione una o más alertas de la lista (Ctrl+clic para varias).'); return
+        c = simpledialog.askstring('Aceptar con comentario', f'Explique por qué se acepta{"n" if len(sel) > 1 else ""} '
+                                   f'{"estas " + str(len(sel)) + " alertas" if len(sel) > 1 else "esta alerta"} '
+                                   '(por ejemplo: "decreto N°xxx en trámite" o "excedible por ley"):', parent=self)
+        if c is None: return
+        if not c.strip():
+            messagebox.showwarning('Falta el comentario', 'Para aceptar una alerta hay que escribir un comentario.'); return
+        d = self.resultado['revision']
+        for i in sel: RV.aceptar(d, i, c)
+        self._guardar_revision()
+
+    def quitar_aceptacion(self):
+        sel = self._seleccion()
+        if not sel: return
+        d = self.resultado['revision']
+        for i in sel: RV.quitar(d, i)
+        self._guardar_revision()
+
+    def _guardar_revision(self):
+        r = self.resultado
+        try:
+            RV.guardar(r['revision'], r['carpeta'], r['anio'], r['mes'], r['corte'])
+        except PermissionError as e:
+            messagebox.showerror('No se pudo guardar', str(e))
+        self.mostrar_revision()
+
+    def exportar_hoja(self):
+        r = self.resultado
+        try:
+            ruta = RV.hoja_de_control(r['revision'], r['ctrl'], r['carpeta'], r['anio'], r['mes'], r['corte'], r['salida'], VERSION)
+        except (ValueError, PermissionError) as e:
+            messagebox.showwarning('Hoja de control', str(e)); return
+        if messagebox.askyesno('Hoja de control', f'Se guardó {os.path.basename(ruta)} en la carpeta MINAGRI del mes.\n\n¿Abrirla ahora?'):
+            abrir(ruta)
 
     def ver_ideas(self):
         if self.resultado: VerIdeas(self, self.resultado)
