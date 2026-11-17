@@ -10,7 +10,7 @@ Solo el programa: código (`programa/`), íconos y logo (`recursos/`), los acces
 
 ## Actualizaciones
 
-Cada versión se publica como *Release* con la etiqueta `vX.Y` y un archivo `Agentes-UPROGE-vX.Y.zip`. Al abrirse, el programa consulta el último Release y, si es más nuevo que el instalado, ofrece instalarlo. La instalación conserva `config.ini` y el Catálogo Maestro, y respalda la versión anterior.
+Cada versión se publica en la rama `main` (con su etiqueta `vX.Y`). Al abrirse, el programa lee `version.json` de esta rama y, si la versión es más nueva que la instalada, ofrece descargarla e instalarla. La instalación conserva `config.ini` y el Catálogo Maestro, y respalda la versión anterior. Las novedades de cada versión están en `version.json`.
 
 ## Requisitos
 

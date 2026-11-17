@@ -43,21 +43,17 @@ def _get(url, timeout):
     req = urllib.request.Request(url, headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'Agentes-UPROGE-actualizador'})
     return urllib.request.urlopen(req, timeout=timeout)
 
-def buscar_en_github(repo, version_actual, timeout=6):
-    """Última versión publicada (Release) en GitHub, si es más nueva que la instalada. Sin conexión: None."""
+def buscar_en_github(repo, version_actual, timeout=6, rama='main'):
+    """Versión publicada en la rama principal del repositorio (archivo version.json), si es más nueva que la
+    instalada. El paquete es el .zip que GitHub arma de la rama. Sin conexión o GitHub bloqueado: excepción."""
     if not repo: return None
-    with _get(f'https://api.github.com/repos/{repo}/releases/latest', timeout) as r:
+    with _get(f'https://raw.githubusercontent.com/{repo}/{rama}/version.json', timeout) as r:
         d = json.load(r)
-    version = str(d.get('tag_name', '')).lstrip('vV')
-    zips = [a for a in d.get('assets', []) if str(a.get('name', '')).lower().endswith('.zip')]
-    if not version or not zips or not es_mas_nueva(version, version_actual):
+    version = str(d.get('version', '')).lstrip('vV')
+    if not version or not es_mas_nueva(version, version_actual):
         return None
-    cambios = [l.strip().lstrip('-*•').strip() for l in (d.get('body') or '').splitlines() if l.strip()[:1] in ('-', '*', '•')]
-    fecha = str(d.get('published_at') or '')[:10]
-    if len(fecha) == 10: fecha = f'{fecha[8:10]}-{fecha[5:7]}-{fecha[0:4]}'
-    a = zips[0]
-    return {'version': version, 'fecha': fecha, 'cambios': cambios, 'origen': 'github', 'pagina': d.get('html_url', ''),
-            'url': a.get('browser_download_url'), 'tamano': a.get('size'), 'sha256': str(a.get('digest') or '').replace('sha256:', '')}
+    return {'version': version, 'fecha': d.get('fecha', ''), 'cambios': d.get('cambios', []), 'origen': 'github',
+            'pagina': f'https://github.com/{repo}', 'url': f'https://github.com/{repo}/archive/refs/heads/{rama}.zip', 'sha256': ''}
 
 def descargar(info, timeout=60):
     """Descarga el .zip de una versión de GitHub a una carpeta temporal y lo verifica. Devuelve la ruta."""

@@ -1,11 +1,11 @@
 {
   "programa": "Agentes de Apoyo a la Gestión – UPROGE",
-  "version": "1.3",
+  "version": "1.3.1",
   "fecha": "17-11-2026",
   "cambios": [
-    "Actualizaciones desde GitHub: al abrir, el programa busca versiones nuevas publicadas y avisa en la bienvenida con un botón para instalarlas",
+    "Actualizaciones desde GitHub: al abrir, la bienvenida revisa la versión publicada en github.com/virusmanu/agentes-uproge y, si es más nueva, muestra el aviso con el botón Ver e instalar",
     "Botón Buscar en GitHub en la ventana Actualizaciones y búsqueda en GitHub desde 5_ACTUALIZAR_AGENTE.bat",
-    "Verificación del archivo descargado (versión y suma de verificación) antes de instalar",
+    "Antes de instalar se verifica que el archivo descargado sea la versión anunciada",
     "Sin conexión o con GitHub bloqueado, el programa funciona igual y no muestra avisos"
   ],
   "actualiza_catalogo": false
