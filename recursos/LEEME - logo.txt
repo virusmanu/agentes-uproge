@@ -1,0 +1,9 @@
+LOGO DEL MINISTERIO
+===================
+logo_grande.png : logo oficial del Ministerio de Agricultura usado en la ventana de bienvenida.
+logo.png        : el mismo logo, a la altura de la cabecera del agente (64 px).
+
+Si se reemplazan, mantenga los nombres de archivo y el formato PNG. Sin estos archivos, las ventanas
+muestran el texto "Ministerio de Agricultura · Gobierno de Chile" con los colores del Kit Digital.
+
+agente.ico / agente.png: ícono del programa, usado en las ventanas y en el acceso directo.

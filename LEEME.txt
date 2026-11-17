@@ -1,0 +1,27 @@
+AGENTES DE APOYO A LA GESTIÓN – UPROGE · versión 1.2
+====================================================
+Al abrir aparece la ventana de bienvenida; el botón "Ejecución Presupuestaria - Power BI" abre este agente.
+
+Genera "MINAGRI Consolidado a <Mes> <Año> - AGENTE.xlsx" (Base Consolidada, Base Glosas, borrador de
+Ideas Fuerza, Análisis mensual, Control y Validación) a partir de los 12 informes del mes y las 6
+planillas de Presupuesto Vigente. No modifica ningún archivo de origen.
+
+Hay DOS formas de usarlo; ambas hacen exactamente lo mismo:
+  - VENTANA (recomendada): 3_ABRIR_AGENTE_VENTANA.bat  o el acceso directo del Escritorio.
+  - CONSOLA:               2_EJECUTAR_AGENTE.bat
+
+Primera vez (una sola vez por computador):
+  1. Tener Python 3.10 o superior (python.org, Microsoft Store o Portal de Empresa).
+  2. Doble clic en 1_INSTALAR.bat.
+  3. Doble clic en 4_CREAR_ACCESO_DIRECTO_EN_ESCRITORIO.bat (opcional, crea el ícono "Agentes UPROGE").
+  4. Abrir la ventana y, si lo pide, configurar las carpetas con el botón "Configurar carpetas".
+
+Actualizar a una versión nueva (desde la 1.1):
+  - VENTANA: botón "Actualizaciones" > "Instalar desde un archivo .zip…", o el aviso automático si se
+    configura una carpeta compartida de actualizaciones en "Configurar carpetas".
+  - CONSOLA: arrastrar el .zip sobre 5_ACTUALIZAR_AGENTE.bat.
+  Se conservan config.ini y el Catálogo Maestro; la versión anterior queda en la carpeta "respaldos".
+  Cambios de cada versión: "Historial de versiones.pdf".
+
+Detalle de cada paso: "Manual de usuario.pdf".
+Contacto para ajustes: Manuel Gómez (UPROGE).
