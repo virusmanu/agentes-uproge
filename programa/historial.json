@@ -1,0 +1,94 @@
+[
+ {
+  "version": "1.5",
+  "fecha": "17-11-2026",
+  "tipo": "Menor",
+  "resumen": "El botón Historial de versiones muestra este resumen en una ventana, en vez de abrir el PDF."
+ },
+ {
+  "version": "1.4",
+  "fecha": "17-11-2026",
+  "tipo": "Menor",
+  "resumen": "Regiones de CONAF corregidas y buscadas por código C.F.",
+  "detalle": [
+   "Se corrigieron en el Catálogo Maestro 12 oficinas de CONAF que tenían la región corrida una fila (por ejemplo, Oficina Central quedaba en Metropolitana). Los totales no cambian; sí la distribución regional.",
+   "La región de CONAF se busca primero por el código C.F. y después por el nombre de la oficina.",
+   "Avisos nuevos: código y nombre con regiones distintas, C.F. nuevo sin código, Oficina Central fuera de Nivel Central y catálogo antiguo sin códigos.",
+   "Las fechas de corte escritas como texto (DD-MM-AAAA) se leen correctamente.",
+   "El catálogo corregido llega con el zip interno; desde GitHub llega solo el programa."
+  ]
+ },
+ {
+  "version": "1.3.1",
+  "fecha": "17-11-2026",
+  "tipo": "Corrección",
+  "resumen": "Las actualizaciones se buscan en el archivo version.json del repositorio de GitHub."
+ },
+ {
+  "version": "1.3",
+  "fecha": "17-11-2026",
+  "tipo": "Menor",
+  "resumen": "Actualizaciones desde GitHub.",
+  "detalle": [
+   "Al abrir, la bienvenida revisa github.com/virusmanu/agentes-uproge y, si hay una versión más nueva, muestra el aviso Ver e instalar.",
+   "Botón Buscar en GitHub en Actualizaciones y búsqueda en GitHub desde 5_ACTUALIZAR_AGENTE.bat.",
+   "Antes de instalar se verifica que el archivo descargado sea la versión anunciada.",
+   "En GitHub va solo el programa: sin Catálogo Maestro, manual ni historial."
+  ]
+ },
+ {
+  "version": "1.2",
+  "fecha": "17-11-2026",
+  "tipo": "Menor",
+  "resumen": "Ventana de bienvenida multipropósito con el logo del Ministerio.",
+  "detalle": [
+   "Bienvenida \"Ministerio de Agricultura - UPROGE · Agentes de Apoyo a la Gestión\" con un botón por agente; el primero es Ejecución Presupuestaria - Power BI.",
+   "Botón ‹ Inicio en el agente para volver a la bienvenida.",
+   "Si una planilla de Presupuesto Vigente trae las columnas de código vacías (fórmulas sin calcular), el código se toma del nombre y se informa en Avisos.",
+   "Acceso directo renombrado a Agentes UPROGE."
+  ]
+ },
+ {
+  "version": "1.1",
+  "fecha": "17-11-2026",
+  "tipo": "Menor",
+  "resumen": "Actualizaciones desde el mismo programa.",
+  "detalle": [
+   "Botón Actualizaciones: instala desde un .zip, muestra novedades y permite volver a una versión anterior.",
+   "Respaldo automático de la versión anterior en la carpeta respaldos.",
+   "Se conservan siempre config.ini y el Catálogo Maestro.",
+   "5_ACTUALIZAR_AGENTE.bat para la consola."
+  ]
+ },
+ {
+  "version": "1.0.1",
+  "fecha": "17-11-2026",
+  "tipo": "Corrección",
+  "resumen": "El borrador de Ideas Fuerza ya no se detiene con filas sin Subtítulo; se informan en Avisos."
+ },
+ {
+  "version": "1.0",
+  "fecha": "17-11-2026",
+  "tipo": "Mayor",
+  "resumen": "Versión gráfica, junto a la de consola.",
+  "detalle": [
+   "Ventana en tres pasos: elegir el mes, fecha de corte de decretos (con Sugerir fecha) y Generar consolidado.",
+   "Resultado en pestañas: ejecución por servicio, avisos, comparación con el consolidado oficial y registro.",
+   "Botones para abrir el Excel, ver y copiar las Ideas Fuerza, abrir la carpeta del mes y configurar carpetas.",
+   "Colores del Kit Digital gob.cl y acceso directo en el Escritorio.",
+   "La consola se mantiene: ambas versiones usan el mismo proceso y dan el mismo resultado."
+  ]
+ },
+ {
+  "version": "0.10",
+  "fecha": "17-11-2026",
+  "tipo": "Menor",
+  "resumen": "Borrador de Ideas Fuerza redactado desde las cifras, comparado con el mes anterior y el año anterior, con marcadores [Completar] para lo cualitativo."
+ },
+ {
+  "version": "0.x",
+  "fecha": "17-11-2026",
+  "tipo": "Prueba",
+  "resumen": "Prueba preliminar: motor que lee los informes de SIGFE II y del ERP de CONAF, Catálogo Maestro único y consolidado con las hojas que lee Power BI."
+ }
+]

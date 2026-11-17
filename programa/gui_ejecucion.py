@@ -1,6 +1,6 @@
 """Agente de Ejecución Presupuestaria – Power BI (ventana).
 Se abre desde la ventana de bienvenida (inicio.py). Usa el mismo proceso que la versión de consola (proceso.py)."""
-import os, sys, threading, queue, traceback, subprocess, datetime
+import os, sys, json, threading, queue, traceback, subprocess, datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, font as tkfont
@@ -210,7 +210,7 @@ class App(tk.Tk):
         man = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'Manual de usuario.pdf')
         if os.path.exists(man): ttk.Button(pie, text='Manual de usuario', style='Secundario.TButton', command=lambda: abrir(man)).pack(side='left')
         ttk.Button(pie, text='Actualizaciones', style='Secundario.TButton', command=lambda: Actualizaciones(self)).pack(side='left', padx=8)
-        if os.path.exists(HISTORIAL): ttk.Button(pie, text='Historial de versiones', style='Secundario.TButton', command=lambda: abrir(HISTORIAL)).pack(side='left')
+        ttk.Button(pie, text='Historial de versiones', style='Secundario.TButton', command=lambda: HistorialVersiones(self)).pack(side='left')
         tk.Label(pie, text=f'Versión {VERSION if ERROR_INICIO is None else "?"}',
                  font=self.f['chica'], bg=GRIS_FONDO, fg=GRIS_SUAVE).pack(side='right')
 
@@ -534,8 +534,7 @@ class Actualizaciones(tk.Toplevel):
         self.lista.pack(fill='both', expand=True)
         b = tk.Frame(self, bg=BLANCO); b.pack(fill='x', pady=(10, 0))
         ttk.Button(b, text='Volver a la versión seleccionada', style='Secundario.TButton', command=self.volver).pack(side='left')
-        if os.path.exists(HISTORIAL):
-            ttk.Button(b, text='Ver historial de versiones', style='Secundario.TButton', command=lambda: abrir(HISTORIAL)).pack(side='left', padx=8)
+        ttk.Button(b, text='Ver historial de versiones', style='Secundario.TButton', command=lambda: HistorialVersiones(app, parent=self)).pack(side='left', padx=8)
         ttk.Button(b, text='Cerrar', style='Secundario.TButton', command=self.destroy).pack(side='right')
 
     def desde_archivo(self):
@@ -583,6 +582,46 @@ class Actualizaciones(tk.Toplevel):
             messagebox.showerror('No se pudo volver', str(e), parent=self); return
         messagebox.showinfo('Listo', f'Se volvió a la versión {ver}. La ventana se abrirá de nuevo.', parent=self)
         self.app.reiniciar()
+
+
+class HistorialVersiones(tk.Toplevel):
+    """Resumen de los cambios de cada versión (programa/historial.json), de la más nueva a la más antigua."""
+    def __init__(self, app, parent=None):
+        super().__init__(parent or app); self.app = app
+        self.title('Historial de versiones'); self.configure(bg=BLANCO); self.transient(parent or app)
+        self.geometry('640x520'); self.minsize(520, 380)
+        try:
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'historial.json'), encoding='utf-8') as f:
+                versiones = json.load(f)
+        except Exception:
+            versiones = []
+        top = tk.Frame(self, bg=BLANCO, padx=20, pady=14); top.pack(fill='x')
+        ttk.Label(top, text='Historial de versiones', style='Paso.TLabel').pack(anchor='w')
+        ttk.Label(top, text=f'Versión instalada: {VERSION}', style='Suave.TLabel').pack(anchor='w')
+        b = tk.Frame(self, bg=BLANCO, padx=20, pady=12); b.pack(fill='x', side='bottom')
+        cuerpo = tk.Frame(self, bg=BLANCO, padx=20); cuerpo.pack(fill='both', expand=True)
+        barra = ttk.Scrollbar(cuerpo, orient='vertical')
+        t = tk.Text(cuerpo, wrap='word', relief='flat', bg=GRIS_FONDO, fg=GRIS_TEXTO, font=app.f['normal'], padx=16, pady=12,
+                    spacing1=2, spacing3=4, yscrollcommand=barra.set, cursor='arrow', highlightthickness=0)
+        barra.configure(command=t.yview); barra.pack(side='right', fill='y'); t.pack(side='left', fill='both', expand=True)
+        t.tag_configure('ver', font=app.f['paso'], foreground=AZUL_OSC, spacing1=10)
+        t.tag_configure('meta', font=app.f['chica'], foreground=GRIS_SUAVE)
+        t.tag_configure('actual', font=app.f['chica'], foreground=BLANCO, background=VERDE)
+        t.tag_configure('res', font=app.f['neg'], foreground=GRIS_TEXTO)
+        t.tag_configure('item', lmargin1=14, lmargin2=28)
+        if not versiones:
+            t.insert('end', 'No se encontró el resumen de versiones.')
+        for v in versiones:
+            t.insert('end', f'Versión {v["version"]}', 'ver')
+            if str(v['version']) == str(VERSION): t.insert('end', '   (instalada)', 'meta')
+            t.insert('end', '\n'); t.insert('end', f'{v.get("tipo", "")} · {v.get("fecha", "")}\n', 'meta')
+            t.insert('end', v.get('resumen', '') + '\n', 'res')
+            for d in v.get('detalle', []): t.insert('end', f'•  {d}\n', 'item')
+        t.configure(state='disabled')
+        if os.path.exists(HISTORIAL):
+            ttk.Button(b, text='Abrir el historial completo (PDF)', style='Secundario.TButton', command=lambda: abrir(HISTORIAL)).pack(side='left')
+        ttk.Button(b, text='Cerrar', style='Secundario.TButton', command=self.destroy).pack(side='right')
+        self.bind('<Escape>', lambda e: self.destroy())
 
 
 class VerIdeas(tk.Toplevel):

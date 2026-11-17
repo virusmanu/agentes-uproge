@@ -1,12 +1,10 @@
 {
   "programa": "Agentes de Apoyo a la Gestión – UPROGE",
-  "version": "1.4",
+  "version": "1.5",
   "fecha": "17-11-2026",
   "cambios": [
-    "Regiones de CONAF (ERP) corregidas en el Catálogo Maestro según el catálogo de oficinas validado (12 oficinas, entre ellas Oficina Central, que vuelve a Nivel Central)",
-    "La región de CONAF se busca primero por código C.F. y luego por nombre de oficina; avisa si ambos no coinciden o si aparece un C.F. nuevo",
-    "Control: avisa si Oficina Central (C.F. 1701) queda fuera de Nivel Central",
-    "Octubre 2026 reproduce la distribución regional de CONAF del consolidado oficial corregido; totales sin cambios"
+    "El botón Historial de versiones muestra un resumen de los cambios de cada versión en una ventana, en vez de abrir el PDF",
+    "Desde esa ventana se puede abrir el historial completo en PDF, si está en la carpeta del agente"
   ],
-  "actualiza_catalogo": true
+  "actualiza_catalogo": false
 }
