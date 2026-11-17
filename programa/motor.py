@@ -38,7 +38,8 @@ class Catalogo:
         self.glo_ue={(r.Servicio,r['U.E. (SIGFIN)']):(r.Glosa,int(float(r['Código Glosa']))) for _,r in x['Glosas SAG por U.E.'].dropna(subset=['U.E. (SIGFIN)']).iterrows()}
         self.mapa={int(float(r['Código región'])):r['Mapa (Power BI)'] for _,r in x['Mapa'].iterrows()}
         c=pd.read_excel(path,sheet_name='Corte decretos',dtype={'Mes':str}).dropna(subset=['Mes'])
-        self.corte={str(m).strip()[:7]:pd.Timestamp(f) for m,f in zip(c.Mes,c['Fecha de corte de decretos']) if pd.notna(f)}
+        # fecha escrita como texto (DD-MM-AAAA) o como fecha de Excel
+        self.corte={str(m).strip()[:7]:(pd.to_datetime(str(f).strip(),dayfirst=True) if isinstance(f,str) else pd.Timestamp(f)) for m,f in zip(c.Mes,c['Fecha de corte de decretos']) if pd.notna(f) and str(f).strip()}
         self.llave=dict(zip(x['Servicios'].Servicio,x['Servicios']['Llave para la región']))
         sv=x['Servicios'].fillna('')
         self.defecto={(r.Servicio,t):(str(r.get(f'Programas no registrados ({t})','') or 'Excluir')).strip() for _,r in sv.iterrows() for t in ('Gastos','Ingresos')}
@@ -89,6 +90,7 @@ def ejecucion(K,path,s,t,av):
         df=df[pd.to_numeric(_col(df,'A.U.',a),errors='coerce').fillna(0)!=0]
         out=pd.DataFrame({'Servicio':s,'Tipo':t},index=df.index)
         llave=df.iloc[:,list(df.columns).index('C.F')+1].map(norm)
+        cf=_col(df,'C.F',a).map(norm)   # código del centro financiero: si está en el catálogo, manda sobre la descripción
         prog=_col(df,'P.P.',a).map(norm); cat=_col(df,'Catalogo',a).map(norm)
         if t=='Ingresos':
             sin=sorted(set(cat.dropna())-{k[1] for k in K.ing if k[0]==s})
@@ -109,7 +111,17 @@ def ejecucion(K,path,s,t,av):
         llave=max(cands,key=lambda c: sum((s,v) in K.reg for v in c)); prog=por_prefijo(df,'ProgramaPresupuestario',a).map(norm); cat=df['Código Concepto'].map(norm)
         for m in MONTOS: out[m]=pd.to_numeric(_col(df,m,a),errors='coerce').fillna(0)/1000
         out['_ue']=None
+        cf=None
     rg=[K.reg.get((s,v)) for v in llave]
+    if cf is not None and any((s,c) in K.reg for c in cf.dropna().unique()):
+        rc=[K.reg.get((s,c)) for c in cf]
+        dist=sorted({f'C.F. {c} {v}: catálogo por código {x[0]}, por nombre {y[0]}' for c,v,x,y in zip(cf,llave,rc,rg) if x and y and x[0]!=y[0]})
+        if dist: av.append(('Revisar',f'{s} {t}: la región por código C.F. no coincide con la región por nombre de oficina en la hoja "Regiones" (se usó la del código): {"; ".join(dist)}'))
+        nuevos_cf=sorted({f'{c} {v}' for c,v,x in zip(cf,llave,rc) if c and not x})
+        if nuevos_cf: av.append(('Revisar',f'{s} {t}: centros financieros sin código C.F. en la hoja "Regiones" (se usó el nombre de oficina): {"; ".join(nuevos_cf)}'))
+        rg=[x or y for x,y in zip(rc,rg)]
+        if s=='05 CONAF' and any(c=='1701' and x and x[0]!=17 for c,x in zip(cf,rg)):
+            av.append(('Revisar','05 CONAF: Oficina Central (C.F. 1701) quedó fuera de Nivel Central (17). Revise la hoja "Regiones" del catálogo: la tabla puede haberse corrido'))
     out['Código']=[r[0] if r else None for r in rg]; out['Región']=[r[1] if r else None for r in rg]
     sinreg=sorted({v for v,r in zip(llave,rg) if r is None and v})
     if sinreg: av.append(('Revisar',f'{s} {t}: unidades sin región en la hoja "Regiones" del catálogo (quedan sin región): {"; ".join(sinreg)}'))
