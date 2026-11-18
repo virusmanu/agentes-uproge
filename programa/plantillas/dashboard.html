@@ -57,7 +57,8 @@ td .num{position:relative;z-index:1}
 #barra-paginas .pie{margin-left:auto;color:#605e5c;font-size:8.5pt;white-space:nowrap;padding-left:12px}
 svg text{font-family:"Segoe UI",Tahoma,sans-serif}
 .tip{position:fixed;z-index:9999;background:#fff;border:1px solid #c8c6c4;box-shadow:0 2px 8px rgba(0,0,0,.2);padding:6px 9px;font-size:9.5pt;pointer-events:none;display:none;line-height:1.4}
-.leaflet-container{background:#aad3df}
+.leaflet-container{background:#c9e2f2}
+.leaflet-tooltip{font-family:"Segoe UI",Tahoma,sans-serif;font-size:9pt}
 </style>
 </head>
 <body>
@@ -385,7 +386,7 @@ const BASE = R.filter(r => r.st !== ST35);
   const BASER = BASE.filter(r => r.t === GASTOS);
   const tb = marco(P, 7, 73, 677, 337, 'Ejecución por Servicio y Región', 14); const br = marco(P, 693, 73, 352, 337, 'Ejecución por Región', 14);
   const cb = marco(P, 7, 421, 1038, 287, 'Presupuesto Asignado y Ejecución por Región', 14); const mp = marco(P, 1051, 73, 225, 635, 'Mapa de Ejecución', 14);
-  let mapa = null, capa = null;
+  let mapa = null, capa = null, regiones = null, porReg_ = {};
   function tablaRegion(rs) { const servs = [...new Set(BASER.map(r => r.s))].sort((a, b) => a - b); const regs = [...new Set(rs.map(r => r.c))].sort((a, b) => a - b);
     let h = '<table class="pv fija" style="font-size:8.5pt"><colgroup><col style="width:17%">' + '<col>'.repeat(servs.length) + '<col style="width:13%"></colgroup><thead><tr><th style="text-align:left">Región</th>' + servs.map(s => '<th>' + esc(sv(s)) + '</th>').join('') + '<th>Total</th></tr></thead><tbody>';
     const tot = {}; servs.forEach(s => tot[s] = 0);
@@ -397,13 +398,21 @@ const BASE = R.filter(r => r.st !== ST35);
     const g = agrupa(sinNC, r => r.c, ['dev', 'req']);
     barrasH(br, g.slice().sort((a, b) => b.dev - a.dev).map(x => ({n: reg(x.k), a: [x.dev]})), [['Ejecución', C1]], {izq: 100, bh: 17, sinLeyenda: true, corte: 14, tx: 'Monto M$'});
     combinado(cb, g.slice().sort((a, b) => a.k - b.k).map(x => ({n: reg(x.k), dev: x.dev, req: x.req})));
-    if (window.L) { if (!mapa) { mapa = L.map(mp, {zoomControl: false, attributionControl: true}).setView([-37.5, -71.5], 3);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 10, attribution: '© OpenStreetMap'}).addTo(mapa); }
-      if (capa) capa.remove(); capa = L.layerGroup().addTo(mapa); const gm = agrupa(sinNC, r => r.m, ['dev']); const mx = Math.max(1, ...gm.map(x => x.dev));
+    if (window.L) { const gm = agrupa(sinNC, r => r.m, ['dev']); const mx = Math.max(1, ...gm.map(x => x.dev)); const porReg = {}; gm.forEach(x => porReg[mapa_nombre(x.k)] = x.dev);
+      if (!mapa) { // mapa sin internet: regiones de Chile y países vecinos incluidos en el archivo (Natural Earth, dominio público)
+        mapa = L.map(mp, {zoomControl: true, attributionControl: true, zoomSnap: 0.25, minZoom: 2.5, maxZoom: 9});
+        mapa.zoomControl.setPosition('topright'); mapa.attributionControl.setPrefix(false); mapa.attributionControl.addAttribution('Límites: Natural Earth');
+        L.geoJSON(D.geo.vecinos, {style: {color: '#d2d0ce', weight: 0.8, fillColor: '#ebe9e4', fillOpacity: 1}, interactive: false}).addTo(mapa);
+        regiones = L.geoJSON(D.geo.regiones, {style: {color: '#bebbb8', weight: 0.7, fillColor: '#f4f2ee', fillOpacity: 1},
+          onEachFeature: (f, l) => { l.bindTooltip(() => '<b>' + esc(f.properties.n) + '</b><br>Ejecución: ' + fN(porReg_[f.properties.n] || 0), {sticky: true});
+            l.on('mouseover', () => l.setStyle({fillColor: '#e1dfdd'})); l.on('mouseout', () => l.setStyle({fillColor: '#f4f2ee'})); }}).addTo(mapa);
+        mapa.fitBounds(regiones.getBounds(), {padding: [6, 6]}); }
+      porReg_ = porReg;
+      if (capa) capa.remove(); capa = L.layerGroup().addTo(mapa);
       gm.forEach(x => { const co = D.coords[mapa_nombre(x.k)]; if (!co || x.dev <= 0) return; L.circleMarker(co, {radius: 4 + 14 * Math.sqrt(x.dev / mx), color: '#12239E', weight: 1, fillColor: C1, fillOpacity: .85})
         .bindTooltip('<b>' + esc(mapa_nombre(x.k)) + '</b><br>Ejecución: ' + fN(x.dev)).addTo(capa); });
       setTimeout(() => mapa.invalidateSize(), 50); }
-    else mp.innerHTML = '<div style="padding:20px;color:#605E5C;font-size:10pt;text-align:center">El mapa necesita conexión a internet.</div>'; }
+    else mp.innerHTML = '<div style="padding:20px;color:#605E5C;font-size:10pt;text-align:center">No se pudo cargar el mapa.</div>'; }
   function mapa_nombre(i) { return T.mapa[i]; }
   segmentador(P, id, 684, 199, 'Servicio, Programa', arbolServicios(BASER), 'prog', dibujar);
   segmentador(P, id, 882, 172, 'Región', [...new Set(BASER.map(r => r.c))].sort((a, b) => a - b).map(c => ({t: reg(c), v: c})), 'reg', dibujar);

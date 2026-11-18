@@ -3,7 +3,7 @@
 Reproduce las seis páginas del informe Power BI (Portada, Hitos Relevantes, Presupuesto Consolidado, Ejecución
 Glosas, Programas y Transferencias y Presupuesto Regional) con las mismas posiciones, colores, filtros y medidas,
 a partir del consolidado del mes. Es un solo archivo .html: se abre con doble clic en cualquier navegador y se puede
-enviar por correo. El mapa usa OpenStreetMap y necesita internet; el resto funciona sin conexión.
+enviar por correo. Todo funciona sin conexión, incluido el mapa (los límites regionales van dentro del archivo).
 No modifica el consolidado ni el .pbix.
 """
 import os, json, base64, datetime
@@ -22,6 +22,12 @@ COORDS = {
     'Región de La Araucanía': (-38.74, -72.60), 'Región de Los Ríos': (-39.81, -73.25), 'Región de Los Lagos': (-41.47, -72.94),
     'Región de Aysén del General Carlos Ibáñez del Campo': (-45.57, -72.07), 'Región de Magallanes y de la Antártica Chilena': (-53.16, -70.91),
 }
+
+
+def _geo():
+    """Regiones de Chile y países vecinos (Natural Earth, dominio público) para dibujar el mapa sin internet."""
+    with open(os.path.join(PLANT, 'mapa_chile.json'), encoding='utf-8') as f:
+        return json.load(f)
 
 
 def _b64(nombre, mime='image/png'):
@@ -76,7 +82,7 @@ def datos(base, bg, ideas, anio, mes, version=''):
             'umbral': {'verde': round(mes / 12, 3), 'amarillo': round((mes - 1) / 12, 3)},
             'dic': {'serv': serv, 'prog': prog, 'tipo': tipo, 'st': st, 'it': it, 'as': asg, 'mapa': mp, 'reg': {str(c): r for c, r in regiones.items()}, 'glosa': glosas},
             'codGlosa': [float(cod.get(x, 999)) if pd.notna(cod.get(x, 999)) else 999 for x in glosas],
-            'filas': filas, 'glosas': gfil, 'ideas': ide, 'coords': {k: list(v) for k, v in COORDS.items()},
+            'filas': filas, 'glosas': gfil, 'ideas': ide, 'coords': {k: list(v) for k, v in COORDS.items()}, 'geo': _geo(),
             'pie': f'Generado por el Agente de Ejecución Presupuestaria (versión {version}) el {datetime.datetime.now():%d-%m-%Y %H:%M}'}
 
 

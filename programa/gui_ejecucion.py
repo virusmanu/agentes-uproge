@@ -657,7 +657,7 @@ class App(tk.Tk):
             import bitacora as BT; BT.registrar_accion(self.cfg['carpeta_informes'], r['anio'], r['mes'], 'Dashboard HTML generado', os.path.basename(ruta))
         except Exception: pass
         if messagebox.askyesno('Dashboard listo', f'Se generó el dashboard del mes:\n\n{os.path.basename(ruta)}\n\nEstá en la carpeta MINAGRI del mes. Es un solo archivo: '
-                               'se abre con doble clic en el navegador y se puede enviar por correo (el mapa necesita internet).\n\n¿Abrirlo ahora?', parent=self):
+                               'se abre con doble clic en el navegador y se puede enviar por correo; funciona sin internet.\n\n¿Abrirlo ahora?', parent=self):
             abrir(ruta)
 
     # ---------------------------------------------------------------- validación del corte

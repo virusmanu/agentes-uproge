@@ -77,13 +77,13 @@
   "programa/anio_nuevo.py": "f39be12b808e16678cd6ac9b72e8c68aa58ea8a18d70645e22386a19a6ff45ef",
   "programa/bitacora.py": "cdfa76fe46bb52923dc7625abecaa912343edd24b00540ab6a8f90895c5509be",
   "programa/crear_acceso.ps1": "d827174f212b03b59706d934bd80f964d2d494a79716130389704757dc0e24df",
-  "programa/dashboard.py": "677cf82e88f6a697380b727556a5d6af3155daf48cc9440f80effd78233c55cd",
+  "programa/dashboard.py": "07f0a74fb632578fc17addc807746d5549a742efef808a4afc9b4da1dec4cf2e",
   "programa/decretos.py": "f9f839a0e6244f43a91e5cf154b55247ef64514aff8988386d48390d18bcc84f",
   "programa/documentos.py": "2c32e165bf3f10bd618695fc8d91bd76add4dcb36ae3b3e68f7d2fba193567e7",
   "programa/editor_catalogo.py": "e2730a60ebd57fb4f1e8dd0ed47e636a5878962e00552697a99ef81afa83eb10",
   "programa/ejecutar.py": "16a92f2c9970a89b5499e0d07bd1fa6b526049dbbe6e3dea3caeb615d0298bf1",
   "programa/firma.py": "5256313c93a3564f7266666411829ddb627c447e9ac42343652bd104b83055f6",
-  "programa/gui_ejecucion.py": "2818f6ac628b802310fa9c6fc4027c833c27a6c749c673e8c53f7eafd240d1b6",
+  "programa/gui_ejecucion.py": "a20a9eecd80efcc47f0f54f16744625520d59eb4f9affd82964954ff2b16c5f1",
   "programa/historia.py": "991fa5e388a86f78e5c5ab7b79d1713e1aaaf3b64f57fc90fdccadb289eb0cc9",
   "programa/historial.json": "719962e258463ffc39b3809201608e09c71099ab6a9fde0ffc88de3e2210c174",
   "programa/ideas.py": "c75b917aaa742454d120640e79e9313d230d102bba9182b74fc222a3f71e5457",
@@ -91,10 +91,11 @@
   "programa/motor.py": "c9be8ec73d3b4678f4e93a88865bd2fe37bc2071f9b3524baaaca974d37da21d",
   "programa/origen.json": "6c5b17a1f24eb4b0f3dd81f8a117473b96f855e998212c4b11f07b7238d7aba9",
   "programa/pbix.py": "14641a96edbc973aa54f408df15d48ec92e64e9194e34b33e1706de6a130f171",
-  "programa/plantillas/dashboard.html": "7142b073ec8499411b05e5951aff5000f5f530f227858ef0607e5903eaa6b988",
+  "programa/plantillas/dashboard.html": "6ae6ccda5f20d0f9665af874b4a8547f4f36a8d0daa1ee1d126788dcccc08a7a",
   "programa/plantillas/franja.png": "ed89c3d7ac25663aa4ac79d6b7da3ec89ff666114f182c1ef0ef4605702c5bf5",
   "programa/plantillas/logo_a.png": "ebd3b20a5ae273d42af301d8d10d3b7e82b6eb64eec95b4c562fa79ff61ebe01",
   "programa/plantillas/logo_b.png": "50d3eace3780d70b3753b402f157c1dc762e2e7a28c9774a0513244ef56c5f16",
+  "programa/plantillas/mapa_chile.json": "01e4bc331096a5368a9a75af0d77db3dfec454f3b77cc8caaf3ea702fa9e95c0",
   "programa/plantillas/panel.html": "be15a604fbbebbd28640d62115c5f694863019d87497bb11a6f08da242561771",
   "programa/precision.py": "96c40d56f1924956ac45fd503d6e95437c11220a903ad9f19547413d9d229c5c",
   "programa/proceso.py": "14f6906819ca27ac17afcb95a5222ba085909ce54ca1995306e25cc67ecafd5f",
@@ -109,5 +110,5 @@
   "recursos/logo_grande.png": "4841eaf41dd561f01f9a7fa77bcb24e7564193d04464a4db7357a58b6b7dbf79",
   "version.json": "aac659960c7c22bde20d4ba2209b7571ca6f31b9b4cf094d424cfa8aeb0cceca"
  },
- "firma": "fad60138944147b9ccca4eaaa732f5df1c2a808e413818983deb27e2961b3a5437514615d08d94c764fed612ddff6ac0afaeab0b4a0161cc66b01d783b211908"
+ "firma": "97cc6db444486eefac2aa7cec11c722a79e60c9ae314453ce9912b7fdb20042ec979f7f84559cc60205734c2f6eea0c8a2e7b2ed97d6bf902cc2bd177dabb108"
 }
