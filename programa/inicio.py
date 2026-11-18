@@ -101,7 +101,12 @@ class Bienvenida(tk.Tk):
         w, h = self.winfo_reqwidth(), self.winfo_reqheight()
         self.geometry(f'+{max(0, (self.winfo_screenwidth() - w) // 2)}+{max(0, (self.winfo_screenheight() - h) // 3)}')
         if AGENTES: self.bind('<Return>', lambda e: self.elegir(AGENTES[0]))
-        if not ACT.REVISADO[0]: threading.Thread(target=self._buscar_version, daemon=True).start()
+        if not ACT.REVISADO[0]:
+            # La búsqueda corre en segundo plano; la ventana solo se toca desde el hilo principal
+            # (en macOS, Tk no admite llamadas desde otros hilos y el aviso no aparecía).
+            self._resultado_busqueda = None
+            threading.Thread(target=self._buscar_version, daemon=True).start()
+            self._esperar_busqueda(0)
         elif ACT.ENCONTRADA[0]: self._mostrar_aviso(ACT.ENCONTRADA[0])
 
     # ---------------------------------------------------------------- actualizaciones
@@ -117,9 +122,16 @@ class Bienvenida(tk.Tk):
             try: info = ACT.buscar_en_github(ACT.repositorio_github(g.get('repositorio_github', '')), actual)
             except Exception: info = None
         ACT.REVISADO[0] = True
-        if info:
-            try: self.after(0, lambda: self._mostrar_aviso(info))
-            except Exception: pass
+        self._resultado_busqueda = info          # lo recoge la ventana desde su propio hilo (_esperar_busqueda)
+
+    def _esperar_busqueda(self, n):
+        try:
+            if not self.winfo_exists(): return
+        except Exception: return
+        if ACT.REVISADO[0]:
+            if self._resultado_busqueda: self._mostrar_aviso(self._resultado_busqueda)
+        elif n < 120:                               # hasta 60 segundos
+            self.after(500, lambda: self._esperar_busqueda(n + 1))
 
     def _mostrar_aviso(self, info):
         if not self.winfo_exists(): return

@@ -39,16 +39,34 @@ def repositorio_github(valor_config=''):
     except Exception:
         return ''
 
-def _get(url, timeout):
-    req = urllib.request.Request(url, headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'Agentes-UPROGE-actualizador'})
-    return urllib.request.urlopen(req, timeout=timeout)
+def _contexto_ssl():
+    """En macOS el Python incluido no siempre encuentra los certificados del sistema: se usa /etc/ssl/cert.pem."""
+    import ssl, sys
+    ctx = ssl.create_default_context()
+    if sys.platform == 'darwin' and os.path.exists('/etc/ssl/cert.pem'):
+        try: ctx.load_verify_locations('/etc/ssl/cert.pem')
+        except Exception: pass
+    return ctx
+
+def _get(url, timeout, accept='application/vnd.github+json'):
+    req = urllib.request.Request(url, headers={'Accept': accept, 'User-Agent': 'Agentes-UPROGE-actualizador', 'Cache-Control': 'no-cache'})
+    return urllib.request.urlopen(req, timeout=timeout, context=_contexto_ssl())
+
+def _version_publicada(repo, rama, timeout):
+    """version.json de la rama. Primero por la API de GitHub (sin el caché de ~5 minutos de raw.githubusercontent.com);
+    si la API no responde (límite de consultas, red), por raw."""
+    try:
+        with _get(f'https://api.github.com/repos/{repo}/contents/version.json?ref={rama}', timeout, 'application/vnd.github.raw') as r:
+            return json.load(r)
+    except Exception:
+        with _get(f'https://raw.githubusercontent.com/{repo}/{rama}/version.json', timeout) as r:
+            return json.load(r)
 
 def buscar_en_github(repo, version_actual, timeout=6, rama='main'):
     """Versión publicada en la rama principal del repositorio (archivo version.json), si es más nueva que la
     instalada. El paquete es el .zip que GitHub arma de la rama. Sin conexión o GitHub bloqueado: excepción."""
     if not repo: return None
-    with _get(f'https://raw.githubusercontent.com/{repo}/{rama}/version.json', timeout) as r:
-        d = json.load(r)
+    d = _version_publicada(repo, rama, timeout)
     version = str(d.get('version', '')).lstrip('vV')
     if not version or not es_mas_nueva(version, version_actual):
         return None
@@ -163,6 +181,9 @@ def _copiar(origen, destino):
         shutil.copytree(origen, destino, dirs_exist_ok=True, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
     elif os.path.exists(origen):
         os.makedirs(os.path.dirname(destino), exist_ok=True); shutil.copy2(origen, destino)
+
+# lanzadores del sistema operativo: .bat en Windows, .command en macOS (el paquete de GitHub trae los .bat)
+_LANZADORES = ('.command',) if __import__('sys').platform == 'darwin' else ('.bat',)
 
 def _archivos_del_programa(raiz):
     fs = [n for n in DEL_PROGRAMA if os.path.exists(os.path.join(raiz, n))]
@@ -281,7 +302,7 @@ def instalar(ruta_zip, raiz=RAIZ, log=print):
             _sincronizar_carpeta(os.path.join(tmp, 'recursos'), os.path.join(raiz, 'recursos'), borrar_sobrantes=False)
         for f in os.listdir(tmp):
             p = os.path.join(tmp, f)
-            if os.path.isfile(p) and (f.lower().endswith(('.bat', '.command')) or f in DEL_PROGRAMA):
+            if os.path.isfile(p) and (f.lower().endswith(_LANZADORES) or f in DEL_PROGRAMA):
                 shutil.copy2(p, os.path.join(raiz, f))
         hechos.append('Accesos .bat, manual e historial actualizados')
         if os.path.exists(os.path.join(tmp, 'config.ini')):

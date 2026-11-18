@@ -5,7 +5,8 @@
   "cambios": [
     "Revisión simplificada: solo incidencias con impacto en el informe (cuadratura, devengo sin vigente, devengo menor que el mes anterior, transferencias intrapartida y decretos que cambian el vigente del mes)",
     "Se eliminan los controles de devengo cerca o sobre el vigente, glosas, salto del mes y sin ejecución; la hoja Umbrales de Reglas de revisión.xlsx queda con tres umbrales",
-    "Versión de prueba para macOS con Apple Silicon (botones de la bienvenida visibles en Mac; el actualizador reconoce los lanzadores .command)"
+    "Versión de prueba para macOS con Apple Silicon (botones de la bienvenida visibles en Mac; el actualizador reconoce los lanzadores .command)",
+    "Actualizador: busca versiones por la API de GitHub (sin el caché de 5 minutos), el aviso al iniciar funciona en macOS y en Mac usa los certificados del sistema"
   ],
   "actualiza_catalogo": false
 }

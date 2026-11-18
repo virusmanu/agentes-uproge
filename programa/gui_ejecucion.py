@@ -283,9 +283,16 @@ class App(tk.Tk):
                 except Exception: info = None      # sin conexión o GitHub bloqueado: no se molesta al usuario
             if info and info['version'] not in ACT.YA_OFRECIDAS:
                 ACT.YA_OFRECIDAS.add(info['version'])
-                try: self.after(0, lambda: self.ofrecer_actualizacion(info))
-                except Exception: pass
+                hallada[0] = info
+            hallada[1] = True
+        hallada = [None, False]
+        def esperar(n=0):                 # la ventana solo se toca desde el hilo principal (macOS)
+            if hallada[1]:
+                if hallada[0]: self.ofrecer_actualizacion(hallada[0])
+            elif n < 120:
+                self.after(500, lambda: esperar(n + 1))
         threading.Thread(target=buscar, daemon=True).start()
+        esperar()
 
     def ofrecer_actualizacion(self, info):
         if self.trabajando: return

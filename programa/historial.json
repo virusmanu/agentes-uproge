@@ -3,7 +3,7 @@
   "version": "1.5g",
   "fecha": "18-11-2026",
   "tipo": "Beta",
-  "resumen": "Revisión simplificada: solo quedan las incidencias con impacto cuantitativo o cualitativo en el informe (cuadratura del devengo, devengo sin presupuesto vigente, devengo menor que el mes anterior, transferencias intrapartida descuadradas y decretos cuya fecha cambia el vigente del mes). Ya no se revisan avances cercanos o sobre el vigente, glosas, saltos del mes ni asignaciones sin ejecución: en octubre 2026, de 44 alertas a 5. Incluye la primera versión de prueba para macOS con Apple Silicon."
+  "resumen": "Revisión simplificada: solo quedan las incidencias con impacto cuantitativo o cualitativo en el informe (cuadratura del devengo, devengo sin presupuesto vigente, devengo menor que el mes anterior, transferencias intrapartida descuadradas y decretos cuya fecha cambia el vigente del mes). Ya no se revisan avances cercanos o sobre el vigente, glosas, saltos del mes ni asignaciones sin ejecución: en octubre 2026, de 44 alertas a 5. Incluye la primera versión de prueba para macOS con Apple Silicon. El actualizador consulta la API de GitHub (una versión recién publicada aparece de inmediato) y el aviso al iniciar funciona también en macOS."
  },
  {
   "version": "1.5h",
