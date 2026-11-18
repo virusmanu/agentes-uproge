@@ -1,20 +1,20 @@
 [
  {
-  "version": "1.7",
+  "version": "1.5h",
   "fecha": "18-11-2026",
-  "tipo": "Mejora",
-  "resumen": "Fechas de decretos según toma de razón. El agente lee el PDF de cada decreto en DIPRES (o en una carpeta local), obtiene la fecha del decreto y la de toma de razón, y aplica esta última para la fecha de corte en todos los servicios por igual. Las fechas quedan en \"Registro de decretos.xlsx\", donde se puede anotar una fecha a mano. La revisión agrega controles que contrastan la fecha de cada planilla con DIPRES. Las planillas de Presupuesto Vigente no se modifican. En octubre esto dejó cuadradas las transferencias BID entre la Subsecretaría, INDAP y SAG."
+  "tipo": "Beta",
+  "resumen": "Fechas de decretos según toma de razón. El agente lee el PDF de cada decreto en DIPRES (o en una carpeta local) y, si el decreto está identificado, aplica la fecha de toma de razón a todos los servicios por igual. Si no está identificado en DIPRES (en trámite de toma de razón o aún no publicado) se mantiene con la fecha de la planilla del servicio: ningún decreto se descarta. La hoja Decretos del archivo de revisión deja la trazabilidad de cada fecha aplicada. Las planillas de Presupuesto Vigente no se modifican. Desde esta versión las correcciones se numeran como betas acumulativas de la 1.5 (letras de la j a la a) hasta la 1.6."
  },
  {
-  "version": "1.6.1",
+  "version": "1.5i",
   "fecha": "18-11-2026",
-  "tipo": "Corrección",
+  "tipo": "Beta",
   "resumen": "Los gastos excedibles por ley salen en amarillo (excedible por regularizar) y no bloquean la hoja de control; la lista está en Reglas de revisión.xlsx, hoja Excedibles."
  },
  {
-  "version": "1.6",
+  "version": "1.5j",
   "fecha": "17-11-2026",
-  "tipo": "Menor",
+  "tipo": "Beta",
   "resumen": "Revisión del consolidado con semáforo y hoja de control.",
   "detalle": [
    "Controles sobre el devengado: cuadratura con el informe bruto, devengo sobre el vigente, devengo menor que el mes anterior, saltos del mes, asignaciones sin ejecución y glosas.",

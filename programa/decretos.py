@@ -206,14 +206,13 @@ def verificar(pvs, anio, criterio='Toma de razón', carpeta_local='', log=print,
         elif criterio == 'Decreto' and i['decreto'] is not None: aplicar[str(n)] = pd.Timestamp(i['decreto'])
         i['aplicada'] = aplicar.get(str(n)); info[n] = i
     if criterio != 'Planilla':
-        sin = [n for n in P if str(n) not in aplicar]
-        if not en_red and en_linea:
-            av.append(('Revisar', 'No pude conectarme con DIPRES para verificar las fechas de los decretos. '
-                                  + (f'Para los decretos N°{", N°".join(map(str, sin))} se usó la fecha registrada en las planillas. ' if sin else '')
-                                  + 'Puede configurar una carpeta local con los PDF de los decretos o anotar la fecha en "Registro de decretos.xlsx"'))
-        elif sin:
-            av.append(('Revisar', f'Decretos sin fecha de {criterio.lower()} verificada (se usó la fecha de la planilla): N°'
-                                  + ', N°'.join(map(str, sin)) + '. Puede anotarla en la columna "Fecha TR manual" de "Registro de decretos.xlsx"'))
+        sin = [n for n in sorted(P) if str(n) not in aplicar]
+        if sin:
+            # Normal: hay latencia entre la toma de razón y la publicación en DIPRES, y decretos recientes aún en trámite.
+            # Esos decretos NO se descartan: se aplican con la fecha registrada en la planilla del servicio.
+            av.append(('Info', ('Sin conexión con DIPRES: ' if (not en_red and en_linea) else '')
+                       + f'{len(sin)} decreto(s) no identificados en DIPRES (en trámite de toma de razón o aún no publicados) se aplicaron con la fecha de la planilla: N°'
+                       + ', N°'.join(map(str, sin)) + '. Detalle por servicio en la hoja Decretos del archivo de revisión del mes'))
         cambian = [(n, info[n]) for n in sorted(P) if str(n) in aplicar and any(pd.notna(fp) and fp != aplicar[str(n)] for fp in info[n]['planillas'].values())]
         if cambian:
             av.append(('Info', f'Fechas de decretos ajustadas al criterio "{criterio}" (fecha DIPRES ≠ fecha de la planilla): '
@@ -221,3 +220,22 @@ def verificar(pvs, anio, criterio='Toma de razón', carpeta_local='', log=print,
                                    for n, i in cambian)))
     ULTIMO = {'fechas': info, 'criterio': criterio, 'aplicar': aplicar, 'avisos': av, 'anio': anio}
     return aplicar, info, av
+
+
+def trazabilidad(corte=None):
+    """Una fila por decreto y servicio: fecha de la planilla, fechas DIPRES, fecha aplicada y su origen."""
+    info = (ULTIMO or {}).get('fechas', {}); crit = (ULTIMO or {}).get('criterio', '')
+    c = pd.Timestamp(corte) if corte is not None else None; filas = []
+    for n, i in sorted(info.items()):
+        for s, fp in sorted(i['planillas'].items()):
+            fp = pd.Timestamp(fp) if fp is not None and pd.notna(fp) else None
+            ap = i.get('aplicada'); ap = pd.Timestamp(ap) if ap is not None else fp
+            if crit == 'Planilla': origen = 'Planilla (criterio Planilla)'
+            elif i.get('aplicada') is None: origen = 'Planilla (no identificado en DIPRES: en trámite o sin publicar)'
+            elif i.get('manual') is not None and crit == 'Toma de razón': origen = 'Fecha TR manual (Registro de decretos)'
+            else: origen = 'DIPRES, ' + ('toma de razón' if crit == 'Toma de razón' else 'fecha del decreto') + (' con alcance' if i.get('alcance') and crit == 'Toma de razón' else '')
+            filas.append({'N° Decreto': n, 'Servicio': s, 'Fecha planilla': fp, 'Fecha decreto (DIPRES)': i.get('decreto'),
+                          'Toma de razón (DIPRES)': i.get('manual') or i.get('tr'), 'Fecha aplicada': ap, 'Origen de la fecha aplicada': origen,
+                          'Dentro del corte': ('' if c is None or ap is None else 'Sí' if ap <= c else 'No (posterior al corte)')})
+    return pd.DataFrame(filas, columns=['N° Decreto', 'Servicio', 'Fecha planilla', 'Fecha decreto (DIPRES)', 'Toma de razón (DIPRES)',
+                                        'Fecha aplicada', 'Origen de la fecha aplicada', 'Dentro del corte'])

@@ -198,17 +198,7 @@ def _control_fechas_dipres(corte, crit):
         for s, fp in i['planillas'].items():
             if fp is None or pd.isna(fp): continue
             fp = pd.Timestamp(fp)
-            if ap is None:
-                # sin fecha DIPRES: se usó la de la planilla. Solo importa si el decreto quedó dentro del vigente
-                # (los decretos antiguos ya estaban tramitados antes del corte: se avisan solo los recientes)
-                if c is None or (c - pd.Timedelta(days=45) < fp <= c):
-                    e = str(i.get('error') or '')
-                    e = ('sin conexión con DIPRES' if e.startswith('sin_conexion') else 'no está publicado en DIPRES' if e.startswith('no_publicado')
-                         else 'el PDF no se pudo leer' if e.startswith('pdf_ilegible') else e or 'sin datos')
-                    A.append(_alerta(AMARILLO, 'Decreto sin toma de razón verificada', s, '', f'N°{n}', 'Decreto',
-                                     f'No verifiqué la toma de razón del decreto N°{n} ({e}); se usó la fecha de la planilla ({fp:%d-%m-%Y}). '
-                                     'Verifique la toma de razón y, si corresponde, anótela en "Registro de decretos.xlsx" (Fecha TR manual)'))
-                continue
+            if ap is None: continue      # no identificado en DIPRES: se usa la fecha de la planilla (normal, ver hoja Decretos)
             if fp == pd.Timestamp(ap): continue
             if crit == 'Toma de razón' and fd is not None and fp == pd.Timestamp(fd):
                 usa_decreto.setdefault(s, []).append((n, fp, pd.Timestamp(ap)))
@@ -374,9 +364,17 @@ def resumen(df):
 def guardar(df, carpeta_mes, anio, mes, corte):
     from openpyxl.styles import Font, PatternFill, Alignment
     ruta = ruta_revision(carpeta_mes, anio, mes); r = resumen(df)
+    dec = None                      # trazabilidad de las fechas de decretos del mes (hoja Decretos)
+    try:
+        import decretos as DC
+        if (DC.ULTIMO or {}).get('anio') == anio and DC.ULTIMO.get('fechas'): dec = DC.trazabilidad(corte)
+        elif os.path.exists(ruta): dec = pd.read_excel(ruta, sheet_name='Decretos')
+    except Exception:
+        dec = None
     info = pd.DataFrame([('Mes', f'{MESES[mes - 1]} {anio}'), ('Fecha de corte de decretos', f'{corte:%d-%m-%Y}'),
                          ('Actualizado', datetime.datetime.now().strftime('%d-%m-%Y %H:%M')), ('Rojos', r['rojos']), ('Rojos sin explicar', r['rojos_pendientes']),
                          ('Amarillos', r['amarillos']), ('Aceptadas con comentario', r['aceptadas']),
+                         ('Decretos', 'Hoja Decretos: fecha aplicada a cada decreto y su origen (toma de razón DIPRES o, si no está identificado en DIPRES, la fecha de la planilla)'),
                          ('Nota', 'Archivo de revisión del agente. No es leído por Power BI y no modifica el consolidado.')], columns=['Dato', 'Valor'])
     try:
         with pd.ExcelWriter(ruta, engine='openpyxl') as w:
@@ -392,6 +390,14 @@ def guardar(df, carpeta_mes, anio, mes, corte):
                 row[6].alignment = Alignment(wrap_text=True, vertical='top')
             ws.column_dimensions['O'].hidden = True
             w.book['Resumen'].column_dimensions['A'].width = 30; w.book['Resumen'].column_dimensions['B'].width = 90
+            if dec is not None and len(dec):
+                dec.to_excel(w, sheet_name='Decretos', index=False); wd = w.book['Decretos']
+                for c in wd[1]: c.font = Font(bold=True, color='FFFFFF'); c.fill = PatternFill('solid', fgColor='1F4E5F')
+                for col, an in zip('ABCDEFGH', (11, 12, 14, 20, 20, 14, 58, 22)): wd.column_dimensions[col].width = an
+                for row in wd.iter_rows(min_row=2):
+                    for c in row[2:6]: c.number_format = 'DD-MM-YYYY'
+                    if str(row[6].value or '').startswith('Planilla (no'): row[6].fill = PatternFill('solid', fgColor='EDEDED')
+                wd.freeze_panes = 'A2'
     except PermissionError:
         raise PermissionError(f'No pude guardar {os.path.basename(ruta)}. ¿Está abierto en Excel? Ciérrelo e intente de nuevo.')
     return ruta

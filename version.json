@@ -1,12 +1,13 @@
 {
   "programa": "Agentes de Apoyo a la Gestión – UPROGE",
-  "version": "1.7",
+  "version": "1.5h",
   "fecha": "18-11-2026",
   "cambios": [
-    "Los decretos de modificación se aplican desde su toma de razón (criterio UPROGE): el agente verifica cada decreto en el PDF que publica DIPRES y usa esa fecha para la fecha de corte, aunque la planilla registre otra",
-    "Lector de PDF incluido (pypdf); carpeta local opcional de decretos y \"Registro de decretos.xlsx\" con las fechas leídas y una columna para anotar la fecha a mano",
-    "Revisión: nuevos controles de fechas de decretos contra DIPRES (fecha que no coincide, planilla con fecha del decreto en vez de la toma de razón, decreto sin toma de razón verificada)",
-    "Criterio configurable en Reglas de revisión.xlsx, hoja Criterios (Toma de razón, Decreto o Planilla)"
+    "Decretos aplicados desde su toma de razón, verificada en el PDF que publica DIPRES (lector de PDF incluido; carpeta local opcional)",
+    "Decretos no identificados en DIPRES (en trámite o aún no publicados): se mantienen con la fecha de la planilla, sin descartarse",
+    "Hoja Decretos en el archivo de revisión del mes: fecha de la planilla, fechas DIPRES, fecha aplicada y su origen; Registro de decretos.xlsx con columna para fecha manual",
+    "Revisión: controles de fechas de planilla contra DIPRES; criterio configurable en Reglas de revisión.xlsx (hoja Criterios)",
+    "Numeración: la 1.5 queda como versión estable y las correcciones son betas acumulativas 1.5j, 1.5i, 1.5h… hasta la 1.6"
   ],
   "actualiza_catalogo": false
 }

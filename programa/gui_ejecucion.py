@@ -238,7 +238,7 @@ class App(tk.Tk):
         if os.path.exists(man): ttk.Button(pie, text='Manual de usuario', style='Secundario.TButton', command=lambda: abrir(man)).pack(side='left')
         ttk.Button(pie, text='Actualizaciones', style='Secundario.TButton', command=lambda: Actualizaciones(self)).pack(side='left', padx=8)
         ttk.Button(pie, text='Historial de versiones', style='Secundario.TButton', command=lambda: HistorialVersiones(self)).pack(side='left')
-        tk.Label(pie, text=f'Versión {VERSION if ERROR_INICIO is None else "?"}',
+        tk.Label(pie, text=f'Versión {VERSION if ERROR_INICIO is None else "?"}' + (' beta' if ERROR_INICIO is None and ACT.es_beta(VERSION) else ''),
                  font=self.f['chica'], bg=GRIS_FONDO, fg=GRIS_SUAVE).pack(side='right')
 
     # ---------------------------------------------------------------- configuración y mes
@@ -713,7 +713,7 @@ class HistorialVersiones(tk.Toplevel):
         if not versiones:
             t.insert('end', 'No se encontró el resumen de versiones.')
         for v in versiones:
-            t.insert('end', f'Versión {v["version"]}', 'ver')
+            t.insert('end', f'Versión {v["version"]}' + (' beta' if ACT.es_beta(v['version']) else ''), 'ver')
             if str(v['version']) == str(VERSION): t.insert('end', '   (instalada)', 'meta')
             t.insert('end', '\n'); t.insert('end', f'{v.get("tipo", "")} · {v.get("fecha", "")}\n', 'meta')
             t.insert('end', v.get('resumen', '') + '\n', 'res')

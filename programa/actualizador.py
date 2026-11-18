@@ -7,7 +7,7 @@ Al instalarla:
   3. se conservan SIEMPRE config.ini (se agregan solo las opciones nuevas) y el Catálogo Maestro
      (si la versión trae un catálogo nuevo, se instala conservando las fechas de corte ya registradas).
 Cualquier respaldo se puede reponer con restaurar()."""
-import os, json, shutil, zipfile, datetime, tempfile, configparser, hashlib, urllib.request
+import os, re, json, shutil, zipfile, datetime, tempfile, configparser, hashlib, urllib.request
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CARPETA_RESPALDOS = 'respaldos'
@@ -81,12 +81,21 @@ def leer_version(raiz=RAIZ):
         return {'version': '0', 'fecha': '', 'cambios': []}
 
 def clave(v):
-    """'1.0.1' -> (1, 0, 1) para comparar versiones."""
+    """Compara versiones. Esquema UPROGE: la versión estable es mayor.menor ('1.5'); las betas acumulativas se marcan
+    con una letra que baja de la j a la a ('1.5j' es la primera beta, '1.5a' la última); después viene '1.6'.
+    Orden: 1.5 < 1.5j < 1.5i < ... < 1.5a < 1.6. También acepta números de tres partes ('1.0.1')."""
+    v = str(v).strip().lower().lstrip('v').replace(' beta', '')
+    m = re.match(r'^([\d.]+?)\.?([a-j])?$', v)
+    nums, letra = (m.group(1), m.group(2)) if m else (v, None)
     out = []
-    for p in str(v).replace('v', '').split('.'):
+    for p in nums.split('.'):
         try: out.append(int(p))
         except ValueError: out.append(0)
-    return tuple(out + [0] * (4 - len(out)))
+    out = (out + [0] * 3)[:3]
+    return tuple(out) + ((ord('k') - ord(letra)) if letra else 0,)
+
+def es_beta(v):
+    return clave(v)[-1] > 0
 
 def es_mas_nueva(a, b):
     return clave(a) > clave(b)
