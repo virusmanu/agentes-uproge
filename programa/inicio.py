@@ -151,7 +151,8 @@ class Bienvenida(tk.Tk):
         try:
             self.configure(cursor='watch'); self.update()
             ruta = ACT.descargar(info) if info.get('url') else info['archivo']
-            r = ACT.instalar(ruta, log=lambda t: None)
+            r = ACT.instalar(ruta, log=lambda t: None, origen='github' if info.get('url') else 'archivo',
+                             confirmar_sin_firma=lambda d: messagebox.askyesno('Sin firma digital', 'Esta actualización no trae firma digital, por lo que el agente no puede comprobar que venga de UPROGE.\n\nInstálela solo si el .zip se lo entregó UPROGE. ¿Instalar igual?', icon='warning', parent=self))
         except Exception as e:
             self.configure(cursor='')
             messagebox.showerror('No se pudo actualizar', f'{e}\n\nNo se modificó config.ini ni el Catálogo Maestro.', parent=self); return

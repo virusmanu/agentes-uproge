@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel de análisis · Agentes UPROGE</title>
+<style>
+:root{--azul:#0d6abf;--s1:#118DFF;--s2:#12239E;--txt:#252423;--sub:#605E5C}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:#E6E6E6;color:var(--txt);font-size:10.5pt}
+header{background:var(--azul);color:#fff;height:60px;display:flex;align-items:center;gap:14px;padding:0 16px}
+header img{height:56px}
+header h1{font-weight:300;font-size:21pt;margin:0;white-space:nowrap}
+header .sub{margin-left:auto;font-size:9pt;opacity:.9;text-align:right}
+nav{display:flex;gap:2px;padding:10px 16px 0}
+nav button{border:1px solid #c8c6c4;border-bottom:0;background:#f3f2f1;padding:8px 16px;font:inherit;cursor:pointer;border-radius:6px 6px 0 0}
+nav button.act{background:#fff;color:var(--azul);font-weight:600}
+main{background:#fff;margin:0 16px 16px;border:1px solid #c8c6c4;border-radius:0 8px 8px 8px;padding:14px;min-height:calc(100vh - 130px)}
+.fila{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:10px}
+label{display:flex;flex-direction:column;font-size:9pt;color:var(--sub);gap:3px}
+select,input{font:inherit;padding:5px 7px;border:1px solid #c8c6c4;border-radius:3px;min-width:150px}
+table{border-collapse:collapse;width:100%;font-size:9.5pt}
+th{background:var(--azul);color:#fff;padding:5px 7px;text-align:center;position:sticky;top:0}
+td{padding:3px 7px;text-align:right;white-space:nowrap}
+td.t{text-align:left;white-space:normal}
+tr:nth-child(even) td{background:#f3f3f3}
+tr.sel td{background:#dbeafc!important}
+tr.clic{cursor:pointer}
+.caja{max-height:58vh;overflow:auto;border:1px solid #e1dfdd}
+h2{color:var(--azul);font-size:13pt;margin:16px 0 8px;font-family:"DIN","Segoe UI Semibold","Segoe UI",sans-serif}
+.nota{color:var(--sub);font-size:9pt;margin:6px 0}
+.pos{color:#1a7f37}.neg{color:#b02a37}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:1100px){.dos{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><img src="__LOGO_B__"><h1>Panel de análisis</h1><div class="sub">Agentes de Apoyo a la Gestión – UPROGE<br>__PIE__</div></header>
+<nav><button data-t="ficha" class="act">Ficha por asignación</button><button data-t="comp">Comparador entre meses</button><button data-t="dec">Decretos</button></nav>
+<main id="main"></main>
+<script>
+const D = __DATA__;
+const fN = v => (v === null || v === undefined || isNaN(v)) ? '' : (v < 0 ? '-' : '') + Math.abs(Math.round(v)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+const fP = v => (!isFinite(v)) ? '' : (v * 100).toFixed(1).replace('.', ',') + ' %';
+const fPP = v => (!isFinite(v)) ? '' : (v >= 0 ? '+' : '') + (v * 100).toFixed(1).replace('.', ',') + ' pp';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const nomMes = i => MESES[D.meses[i][1] - 1] + ' ' + D.meses[i][0];
+const K = D.claves;        // [servicio, programa, tipo, subtitulo, item, asignacion]
+const S = D.series;        // por clave: [[vig, dev] o null por mes]
+const nombre = k => K[k][5] || K[k][4] || K[k][3];
+const opciones = (vals, todas) => (todas ? '<option value="">Todos</option>' : '') + vals.map(v => '<option>' + esc(v) + '</option>').join('');
+const unicos = f => [...new Set(K.map(f))].filter(x => x).sort();
+const M = document.getElementById('main');
+
+function ficha() {
+  M.innerHTML = '<div class="fila"><label>Servicio<select id="fs">' + opciones(unicos(k => k[0]), true) + '</select></label><label>Programa<select id="fp"><option value="">Todos</option></select></label>'
+    + '<label>Tipo<select id="ft"><option>Gastos</option><option>Ingresos</option></select></label><label style="flex:1">Buscar (código o nombre)<input id="fb" placeholder="p. ej. 2401369 o Emergencias"></label></div>'
+    + '<div class="dos"><div><div class="caja" id="lista"></div><p class="nota">Elija una fila para ver su serie mensual. Ítems o subtítulos sin asignaciones aparecen con su propio nombre.</p></div><div id="serie"></div></div>';
+  const fs = document.getElementById('fs'), fp = document.getElementById('fp'), ft = document.getElementById('ft'), fb = document.getElementById('fb');
+  const ult = D.meses.length - 1;
+  function progs() { fp.innerHTML = opciones([...new Set(K.filter(k => !fs.value || k[0] === fs.value).map(k => k[1]))].sort(), true); }
+  function lista() {
+    const q = fb.value.trim().toLowerCase();
+    const ks = K.map((k, i) => i).filter(i => (!fs.value || K[i][0] === fs.value) && (!fp.value || K[i][1] === fp.value) && K[i][2] === ft.value && (!q || nombre(i).toLowerCase().includes(q)));
+    ks.sort((a, b) => ((S[b][ult] || [0, 0])[0]) - ((S[a][ult] || [0, 0])[0]));
+    let h = '<table><thead><tr><th>Servicio</th><th>Programa</th><th>Clasificador</th><th>Vigente ' + esc(nomMes(ult)) + '</th><th>Devengo</th><th>% avance</th></tr></thead><tbody>';
+    ks.slice(0, 400).forEach(i => { const v = S[i][ult] || [0, 0]; h += '<tr class="clic" data-i="' + i + '"><td class="t">' + esc(K[i][0]) + '</td><td class="t">' + esc(K[i][1].split(' - ')[0]) + '</td><td class="t">' + esc(nombre(i)) + '</td><td>' + fN(v[0]) + '</td><td>' + fN(v[1]) + '</td><td>' + fP(v[0] ? v[1] / v[0] : NaN) + '</td></tr>'; });
+    h += '</tbody></table>' + (ks.length > 400 ? '<p class="nota">Se muestran 400 de ' + ks.length + ' filas: afine la búsqueda.</p>' : '');
+    document.getElementById('lista').innerHTML = h;
+    document.querySelectorAll('#lista tr[data-i]').forEach(tr => tr.onclick = () => { document.querySelectorAll('#lista tr.sel').forEach(x => x.classList.remove('sel')); tr.classList.add('sel'); serie(+tr.dataset.i); });
+  }
+  function serie(i) {
+    const k = K[i]; let h = '<h2>' + esc(nombre(i)) + '</h2><p class="nota">' + esc(k[0] + ' · ' + k[1] + ' · ' + k[2]) + '</p>';
+    const pts = S[i].map((v, j) => ({j, vig: v ? v[0] : null, dev: v ? v[1] : null}));
+    const max = Math.max(1, ...pts.map(p => Math.max(p.vig || 0, p.dev || 0))); const W = 560, H = 220, iz = 90, ab = 30;
+    let g = ''; const x = j => iz + (W - iz - 20) * (pts.length > 1 ? j / (pts.length - 1) : .5), y = v => 10 + (H - ab - 10) * (1 - v / max);
+    [0, .5, 1].forEach(f => { g += '<line x1="' + iz + '" x2="' + (W - 10) + '" y1="' + y(max * f) + '" y2="' + y(max * f) + '" stroke="#e1dfdd"/><text x="' + (iz - 6) + '" y="' + (y(max * f) + 4) + '" font-size="9" text-anchor="end" fill="#605e5c">' + fN(max * f) + '</text>'; });
+    [['vig', '#118DFF'], ['dev', '#12239E']].forEach(([c, col]) => { const p = pts.filter(q => q[c] !== null); g += '<polyline fill="none" stroke="' + col + '" stroke-width="2.5" points="' + p.map(q => x(q.j) + ',' + y(q[c])).join(' ') + '"/>' + p.map(q => '<circle cx="' + x(q.j) + '" cy="' + y(q[c]) + '" r="3" fill="' + col + '"/>').join(''); });
+    pts.forEach(p => g += '<text x="' + x(p.j) + '" y="' + (H - 10) + '" font-size="9" text-anchor="middle" fill="#605e5c">' + MESES[D.meses[p.j][1] - 1].slice(0, 3) + '</text>');
+    h += '<svg width="' + W + '" height="' + H + '">' + g + '</svg><p class="nota"><span style="color:#118DFF">●</span> Presupuesto vigente &nbsp; <span style="color:#12239E">●</span> Devengo acumulado</p>';
+    h += '<table><thead><tr><th>Mes</th><th>Vigente</th><th>Variación del vigente</th><th>Devengo acumulado</th><th>Devengo del mes</th><th>% avance</th></tr></thead><tbody>';
+    let ant = null; pts.forEach(p => { const dv = ant && p.vig !== null ? p.vig - (ant.vig || 0) : null, dd = ant && p.dev !== null ? p.dev - (ant.dev || 0) : p.dev;
+      h += '<tr><td class="t">' + esc(nomMes(p.j)) + '</td><td>' + fN(p.vig) + '</td><td class="' + (dv > 0 ? 'pos' : dv < 0 ? 'neg' : '') + '">' + (dv ? fN(dv) : '') + '</td><td>' + fN(p.dev) + '</td><td>' + fN(dd) + '</td><td>' + fP(p.vig ? p.dev / p.vig : NaN) + '</td></tr>'; if (p.vig !== null) ant = p; });
+    document.getElementById('serie').innerHTML = h + '</tbody></table>';
+  }
+  fs.onchange = () => { progs(); lista(); }; fp.onchange = lista; ft.onchange = lista; fb.oninput = lista; progs(); lista();
+}
+
+function comparador() {
+  const n = D.meses.length; const op = D.meses.map((m, i) => '<option value="' + i + '">' + esc(nomMes(i)) + '</option>').join('');
+  M.innerHTML = '<div class="fila"><label>Mes de comparación<select id="ca">' + op + '</select></label><label>Mes a analizar<select id="cb">' + op + '</select></label><label>Tipo<select id="ct"><option>Gastos</option><option>Ingresos</option></select></label></div><div id="res"></div>';
+  const ca = document.getElementById('ca'), cb = document.getElementById('cb'), ct = document.getElementById('ct'); ca.value = Math.max(0, n - 2); cb.value = n - 1;
+  function calc() {
+    const a = +ca.value, b = +cb.value, t = ct.value; const por = new Map(); const det = [];
+    K.forEach((k, i) => { if (k[2] !== t) return; const va = S[i][a] || [0, 0], vb = S[i][b] || [0, 0]; const o = por.get(k[0]) || [0, 0, 0, 0]; o[0] += va[0]; o[1] += vb[0]; o[2] += va[1]; o[3] += vb[1]; por.set(k[0], o);
+      det.push({i, dv: vb[0] - va[0], dd: vb[1] - va[1]}); });
+    let h = '<h2>Por servicio</h2><table><thead><tr><th>Servicio</th><th>Vigente ' + esc(nomMes(a)) + '</th><th>Vigente ' + esc(nomMes(b)) + '</th><th>Variación del vigente</th><th>Devengo ' + esc(nomMes(a)) + '</th><th>Devengo ' + esc(nomMes(b)) + '</th><th>Devengo del período</th><th>Avance ' + esc(nomMes(a)) + '</th><th>Avance ' + esc(nomMes(b)) + '</th><th>Diferencia</th></tr></thead><tbody>';
+    const tot = [0, 0, 0, 0]; [...por.keys()].sort().forEach(s => { const o = por.get(s); o.forEach((v, j) => tot[j] += v); h += fila(s, o); });
+    function fila(s, o) { const pa = o[0] ? o[2] / o[0] : NaN, pb = o[1] ? o[3] / o[1] : NaN; return '<tr><td class="t">' + esc(s) + '</td><td>' + fN(o[0]) + '</td><td>' + fN(o[1]) + '</td><td class="' + (o[1] - o[0] > 0 ? 'pos' : o[1] - o[0] < 0 ? 'neg' : '') + '">' + fN(o[1] - o[0]) + '</td><td>' + fN(o[2]) + '</td><td>' + fN(o[3]) + '</td><td>' + fN(o[3] - o[2]) + '</td><td>' + fP(pa) + '</td><td>' + fP(pb) + '</td><td>' + fPP(pb - pa) + '</td></tr>'; }
+    h += fila('Total MINAGRI', tot).replace('<tr>', '<tr style="font-weight:700">') + '</tbody></table>';
+    const top = (arr, c) => arr.filter(x => x[c]).sort((x, y) => Math.abs(y[c]) - Math.abs(x[c])).slice(0, 20);
+    const tabla = (arr, c, t1) => '<table><thead><tr><th>Servicio</th><th>Clasificador</th><th>' + t1 + '</th></tr></thead><tbody>' + arr.map(x => '<tr><td class="t">' + esc(K[x.i][0]) + '</td><td class="t">' + esc(nombre(x.i)) + '</td><td class="' + (x[c] > 0 ? 'pos' : 'neg') + '">' + fN(x[c]) + '</td></tr>').join('') + '</tbody></table>';
+    h += '<div class="dos"><div><h2>Mayores cambios del presupuesto vigente</h2>' + tabla(top(det, 'dv'), 'dv', 'Variación') + '</div><div><h2>Mayor ejecución del período</h2>' + tabla(top(det, 'dd'), 'dd', 'Devengo del período') + '</div></div>';
+    document.getElementById('res').innerHTML = h; }
+  ca.onchange = cb.onchange = ct.onchange = calc; calc();
+}
+
+function decretos() {
+  const R = D.decretos; const meses = [...new Set(R.map(r => r[0] + '-' + r[1]))];
+  M.innerHTML = '<div class="fila"><label>Mes<select id="dm"><option value="">Todos</option>' + meses.map(m => { const [a, b] = m.split('-'); return '<option value="' + m + '">' + MESES[b - 1] + ' ' + a + '</option>'; }).join('') + '</select></label><label>Servicio<select id="ds">' + opciones([...new Set(R.map(r => r[2]))].sort(), true) + '</select></label><label style="flex:1">N° de decreto<input id="dn"></label></div><div class="caja" id="dt"></div>'
+    + '<p class="nota">Decretos registrados en las planillas de Presupuesto Vigente, con la fecha aplicada por el agente (toma de razón verificada en DIPRES o, si no está identificado, la fecha de la planilla) y si quedó dentro del vigente del mes. Se registran desde la versión 2.0.</p>';
+  const dm = document.getElementById('dm'), ds = document.getElementById('ds'), dn = document.getElementById('dn'); if (meses.length) dm.value = meses[meses.length - 1];
+  function dib() { const f = R.filter(r => (!dm.value || r[0] + '-' + r[1] === dm.value) && (!ds.value || r[2] === ds.value) && (!dn.value || String(r[3]).includes(dn.value.trim())));
+    document.getElementById('dt').innerHTML = '<table><thead><tr><th>Mes</th><th>Servicio</th><th>N° decreto</th><th>Fecha en la planilla</th><th>Fecha aplicada</th><th>Dentro del vigente</th><th>Monto gastos M$</th><th>Monto ingresos M$</th></tr></thead><tbody>'
+      + f.map(r => '<tr><td class="t">' + MESES[r[1] - 1] + ' ' + r[0] + '</td><td class="t">' + esc(r[2]) + '</td><td>' + esc(r[3]) + '</td><td>' + esc(r[4]) + '</td><td>' + esc(r[5]) + '</td><td class="t">' + esc(r[6]) + '</td><td>' + fN(r[7]) + '</td><td>' + fN(r[8]) + '</td></tr>').join('') + '</tbody></table>'; }
+  dm.onchange = ds.onchange = dib; dn.oninput = dib; dib();
+}
+
+const VISTAS = {ficha, comp: comparador, dec: decretos};
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => { document.querySelectorAll('nav button').forEach(x => x.classList.toggle('act', x === b)); VISTAS[b.dataset.t](); });
+if (!D.meses.length) M.innerHTML = '<p>La base histórica está vacía: genere un mes o use "Reconstruir" en el agente.</p>'; else ficha();
+</script>
+</body>
+</html>

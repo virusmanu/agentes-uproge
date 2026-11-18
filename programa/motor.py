@@ -28,7 +28,10 @@ class Catalogo:
         x=pd.read_excel(path,sheet_name=None,dtype=str)
         for h in ['Servicios','Regiones','Programas','Clasificador','Clasificador por servicio','Ingresos SIGFIN','Glosas','Glosas SAG por U.E.','Mapa','Corte decretos']:
             if h not in x: raise ErrorAgente(f'Al Catálogo Maestro le falta la hoja "{h}"')
-        self.reg={(r.Servicio,r['Valor en el informe bruto']):(int(r['Código región']),r.Región) for _,r in x['Regiones'].dropna(subset=['Valor en el informe bruto']).iterrows()}
+        rg=x['Regiones'].dropna(subset=['Valor en el informe bruto'])
+        malas=[i+2 for i,v in zip(rg.index,rg['Código región']) if pd.isna(pd.to_numeric(v,errors='coerce'))]
+        if malas: raise ErrorAgente(f'Catálogo Maestro, hoja "Regiones": la columna "Código región" debe ser un número (filas {", ".join(map(str,malas[:10]))}). Corríjalo y vuelva a generar')
+        self.reg={(r.Servicio,r['Valor en el informe bruto']):(int(float(r['Código región'])),r.Región) for _,r in rg.iterrows()}
         p=x['Programas'].fillna('')
         self.prog={(r.Servicio,r['Valor en el informe bruto']):(r.Tratamiento.strip(),r.Programa.strip()) for _,r in p.iterrows() if r['Valor en el informe bruto']}
         self.nom={(r.Nivel,r.Código):r.Nombre for _,r in x['Clasificador'].dropna(subset=['Código']).iterrows()}

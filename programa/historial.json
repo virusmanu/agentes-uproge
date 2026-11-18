@@ -1,5 +1,50 @@
 [
  {
+  "version": "2.0",
+  "fecha": "18-11-2026",
+  "tipo": "Mayor",
+  "criticidad": "Crítica",
+  "resumen": "Versión para el informe oficial: el agente publica el consolidado que lee Power BI con doble control, sus actualizaciones vienen firmadas digitalmente y el Catálogo Maestro y la bitácora quedan protegidos. Agrega el dashboard HTML del informe, una base histórica local y el Panel de análisis (ficha por asignación, comparador entre meses y decretos). Incluye todo lo de la 1.7.",
+  "cambios": [
+   {
+    "criticidad": "Crítica",
+    "texto": "Publicación del consolidado oficial con doble control (botón \"Aprobar y publicar…\"): el consolidado del agente pasa a ser el archivo que lee Power BI solo si lo aprueba una persona distinta de quien lo generó, sin rojos pendientes y sin cambios en sus cifras desde que se generó. Nunca reemplaza un consolidado oficial hecho fuera del agente"
+   },
+   {
+    "criticidad": "Crítica",
+    "texto": "Actualizaciones firmadas digitalmente: desde GitHub solo se instalan versiones con firma válida de UPROGE; un .zip sin firma pide confirmación y uno con firma inválida o archivos alterados se rechaza"
+   },
+   {
+    "criticidad": "Crítica",
+    "texto": "Catálogo protegido: si el Catálogo Maestro cambió fuera del agente, al generar se informa qué cambió (hoja y filas), se respalda la versión y queda en la bitácora"
+   },
+   {
+    "criticidad": "Media",
+    "texto": "Dashboard HTML (botón \"Generar Dashboard\"): las seis páginas del informe Power BI en un solo archivo .html, con los mismos colores, filtros, tablas y gráficos, para abrir en el navegador o enviar por correo"
+   },
+   {
+    "criticidad": "Media",
+    "texto": "Bitácora encadenada: cada fila lleva una huella que depende de la anterior; el agente avisa si alguien la modificó a mano. Nueva hoja Publicaciones"
+   },
+   {
+    "criticidad": "Media",
+    "texto": "Base histórica local con cada corte y sus decretos, que se reconstruye desde las carpetas de los meses"
+   },
+   {
+    "criticidad": "Media",
+    "texto": "Panel de análisis: ficha por asignación con su serie mensual, comparador entre meses y tablero de decretos con la fecha aplicada"
+   },
+   {
+    "criticidad": "Baja",
+    "texto": "Botones nuevos: Generar Dashboard, Aprobar y publicar…, Panel de análisis; mensaje claro si la hoja Regiones del catálogo trae un código de región no numérico"
+   },
+   {
+    "criticidad": "Baja",
+    "texto": "Instalador .exe de la versión 2.0"
+   }
+  ]
+ },
+ {
   "version": "1.7",
   "fecha": "18-11-2026",
   "tipo": "Mayor",

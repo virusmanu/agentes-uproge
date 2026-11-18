@@ -1,20 +1,17 @@
 {
   "programa": "Agentes de Apoyo a la Gestión – UPROGE",
-  "version": "1.7",
+  "version": "2.0",
   "fecha": "18-11-2026",
   "cambios": [
-    "[Crítica] Asignaciones \"000\" (ítems que el servicio no abre en asignaciones): la ejecución vuelve a quedar en la misma línea que su presupuesto vigente, igual que el consolidado oficial. Corrige el detalle por ítem de la tabla de Presupuesto Consolidado en Power BI",
-    "[Crítica] Cuadratura punta a punta al peso: requerimiento, compromiso y devengo contra los informes brutos, y presupuesto ley y vigente contra las planillas, por servicio, tipo, programa y subtítulo",
-    "[Crítica] Motor sombra: un segundo cálculo de la ejecución, directo desde los informes brutos, debe coincidir con el consolidado por programa y subtítulo",
-    "[Crítica] Coherencia entre servicios: alerta en rojo si un decreto queda dentro del vigente en un servicio y fuera en otro, o si una transferencia intrapartida no cuadra con el ingreso del servicio que la recibe",
-    "[Crítica] Contrato de entrada: detecta montos con fórmula sin calcular en las planillas, montos no numéricos o columnas faltantes en los informes, filas repetidas y presupuestos no balanceados (gastos distinto de ingresos)",
-    "[Media] Contrato de salida para Power BI: columnas, tipos, nombres únicos por código, regiones, valores que usan los filtros del informe y comparación con el consolidado del mes anterior",
-    "[Media] Revisión del informe Power BI (.pbix) del mes, solo lectura: títulos con el mes y año, umbrales del semáforo de avance (mes/12) y filtros que no encuentran su valor en los datos",
-    "[Media] Los rojos de la validación pasan a la pestaña Revisión y, como los demás, bloquean la hoja de control hasta corregirlos o explicarlos",
-    "[Media] Trazabilidad fila a fila: cada fila del consolidado indica el informe y la fila de origen; cada fila de las planillas indica la fecha aplicada al decreto y si quedó dentro del vigente",
-    "[Media] Huella del corte: con los mismos insumos, corte y versión, el consolidado debe ser idéntico; si no lo es, se marca en rojo",
-    "[Baja] Nueva pestaña Validación con el semáforo del corte y nuevo archivo \"MINAGRI Validación a <mes> <año>.xlsx\"",
-    "[Baja] Historial de versiones y novedades con la criticidad de cada cambio: rojo (crítica), amarillo (media) y verde (baja)"
+    "[Crítica] Publicación del consolidado oficial con doble control (botón \"Aprobar y publicar…\"): el consolidado del agente pasa a ser el archivo que lee Power BI solo si lo aprueba una persona distinta de quien lo generó, sin rojos pendientes y sin cambios en sus cifras desde que se generó. Nunca reemplaza un consolidado oficial hecho fuera del agente",
+    "[Crítica] Actualizaciones firmadas digitalmente: desde GitHub solo se instalan versiones con firma válida de UPROGE; un .zip sin firma pide confirmación y uno con firma inválida o archivos alterados se rechaza",
+    "[Crítica] Catálogo protegido: si el Catálogo Maestro cambió fuera del agente, al generar se informa qué cambió (hoja y filas), se respalda la versión y queda en la bitácora",
+    "[Media] Dashboard HTML (botón \"Generar Dashboard\"): las seis páginas del informe Power BI en un solo archivo .html, con los mismos colores, filtros, tablas y gráficos, para abrir en el navegador o enviar por correo",
+    "[Media] Bitácora encadenada: cada fila lleva una huella que depende de la anterior; el agente avisa si alguien la modificó a mano. Nueva hoja Publicaciones",
+    "[Media] Base histórica local con cada corte y sus decretos, que se reconstruye desde las carpetas de los meses",
+    "[Media] Panel de análisis: ficha por asignación con su serie mensual, comparador entre meses y tablero de decretos con la fecha aplicada",
+    "[Baja] Botones nuevos: Generar Dashboard, Aprobar y publicar…, Panel de análisis; mensaje claro si la hoja Regiones del catálogo trae un código de región no numérico",
+    "[Baja] Instalador .exe de la versión 2.0"
   ],
   "actualiza_catalogo": false
 }

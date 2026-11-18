@@ -69,6 +69,9 @@ def agregar(catalogo, filas):
         wb.save(catalogo)
     except PermissionError:
         raise PermissionError('No pude guardar el Catálogo Maestro: está abierto en Excel (o lo está usando otra persona). Ciérrelo e intente de nuevo.')
+    try:
+        import seguridad as SG; SG.catalogo_modificado_por_el_agente(catalogo, 'agregado desde el agente')
+    except Exception: pass
     return resp
 
 

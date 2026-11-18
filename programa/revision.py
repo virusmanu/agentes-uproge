@@ -29,6 +29,8 @@ EXCEDIBLES = [  # (código o prefijo, denominación, fundamento, activo)
 CRITERIOS = [  # (clave, valor, descripción)
     ('criterio_fecha_decreto', 'Toma de razón', 'Fecha desde la que un decreto de modificación se aplica al presupuesto vigente: "Toma de razón" (criterio UPROGE, '
      'se verifica en DIPRES), "Decreto" (fecha del decreto en DIPRES) o "Planilla" (la que registra cada servicio)'),
+    ('doble_control', 'Sí', 'Doble control para publicar el consolidado oficial: "Sí" = debe aprobar una persona distinta de la que lo generó; '
+     '"No" = la misma persona puede aprobar (queda registrado en la bitácora)'),
 ]
 PARES = [  # Subsecretaría (Gastos, P04 BID)  ->  servicio receptor (Ingresos)
     ('01 SUBSE', 2402301, '03 INDAP', 'P01', 502032),
@@ -76,6 +78,14 @@ def leer_reglas():
         try: _agregar_hoja_criterios()
         except Exception: pass
         C = {}
+    faltan = [r for r in CRITERIOS if r[0] not in C]
+    if faltan and C:                                 # reglas de una versión anterior: se agregan los criterios nuevos a la hoja
+        try:
+            import openpyxl
+            wb = openpyxl.load_workbook(REGLAS); ws = wb['Criterios']
+            for r in faltan: ws.append(list(r))
+            wb.save(REGLAS)
+        except Exception: pass
     for k, v, _ in CRITERIOS: C[k] = C.get(k) or v
     U['_criterios'] = C
     try:
@@ -136,6 +146,10 @@ def _agregar_hoja_criterios():
     for c in ws['B'][1:]: c.fill = PatternFill('solid', fgColor='FFF2CC')
     for col, w in zip('ABC', (26, 16, 150)): ws.column_dimensions[col].width = w
     wb.save(REGLAS)
+
+def criterio(clave):
+    try: return leer_reglas()[0]['_criterios'][clave]
+    except Exception: return dict((k, v) for k, v, _ in CRITERIOS).get(clave, '')
 
 def criterio_fecha_decreto():
     try: return leer_reglas()[0]['_criterios']['criterio_fecha_decreto']

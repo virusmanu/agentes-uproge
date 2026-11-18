@@ -220,6 +220,7 @@ def guardar_corte_en_catalogo(catalogo, anio, m, fecha, obs):
     ws.cell(fila, 3, fecha.to_pydatetime()); ws.cell(fila, 3).number_format = 'DD-MM-YYYY'; ws.cell(fila, 4, obs)
     try: wb.save(catalogo)
     except PermissionError: raise ErrorAgente('No pude guardar la fecha en el Catálogo Maestro. ¿Está abierto en Excel? Ciérrelo e intente de nuevo.')
+    import seguridad as SG; SG.catalogo_modificado_por_el_agente(catalogo, f'fecha de corte {mes}')
 
 
 # ------------------------------------------------------------------ proceso completo
@@ -232,6 +233,10 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
     def avanzar(t):
         n[0] += 1; paso(min(n[0], TOTAL), TOTAL, t); log(t)
     avanzar('Leyendo el Catálogo Maestro y las planillas de Presupuesto Vigente')
+    import seguridad as SG
+    cambio_cat = None
+    try: cambio_cat = SG.verificar_catalogo(cfg['catalogo'])        # catálogo protegido: cambios hechos fuera del agente
+    except Exception: pass
     K = Catalogo(cfg['catalogo']); pvs = planillas_pv(cfg['carpeta_presupuesto_vigente'])
     avanzar('Verificando fechas de decretos en DIPRES (toma de razón)')
     import motor, decretos as DC
@@ -250,6 +255,11 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
         elif t.startswith('Presupuesto vigente'): avanzar(t.replace(' ...', ''))
     base_df, bg, _, ctrl, av = generar(K, carpeta, pvs, corte, None, log=log_motor)
     av = list(av_dec) + list(av)
+    if cambio_cat:
+        av.insert(0, ('Revisar', 'Catálogo Maestro: ' + cambio_cat))
+        try:
+            import bitacora as BT; BT.registrar_accion(cfg['carpeta_informes'], anio, m, 'Catálogo modificado fuera del agente', cambio_cat)
+        except Exception: pass
     try: av = [('Revisar' if n == 'Error' else 'Info', 'Revisión previa: ' + t) for n, t in revision_previa(cfg, anio, m, carpeta)
                if 'abierto en Excel' not in t] + av
     except Exception: pass
@@ -313,6 +323,10 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
         import traceback
         log('No se pudo completar la validación del corte:\n' + traceback.format_exc())
         av.append(('Revisar', f'No se pudo completar la validación del corte ({type(e).__name__}: {e})'))
+    if V is not None and cambio_cat:
+        V['hallazgos'] = pd.concat([pd.DataFrame([PR._h('Contrato de entrada', 'Catálogo Maestro modificado fuera del agente', PR.AMARILLO, cambio_cat, '',
+                                                         'Confirme que los cambios del catálogo fueron intencionales (respaldo en respaldos\\catálogo protegido)')]),
+                                    V['hallazgos']], ignore_index=True)
     sem = PR.semaforo(V['hallazgos']) if V is not None else None
     avanzar('Guardando el archivo')
     info = pd.DataFrame([('Mes', nombre), ('Generado', datetime.datetime.now().strftime('%d-%m-%Y %H:%M')), ('Versión del agente', VERSION),
@@ -346,11 +360,21 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
         docs = {'ideas': DOC.ideas_fuerza(res), 'resumen': DOC.resumen_ejecutivo(res)}
     except Exception as e:
         av.append(('Revisar', f'No se pudieron preparar los documentos Word ({type(e).__name__}: {e}); el consolidado quedó guardado igual'))
+    try:   # base histórica local (ficha, comparador y decretos del Panel de análisis)
+        import historia as HI
+        HI.guardar_mes(anio, m, base_df, 'agente', salida, V.get('traza_pv') if V is not None else None)
+    except Exception as e:
+        av.append(('Info', f'No se pudo guardar el mes en la base histórica ({type(e).__name__}: {e})'))
     try:   # bitácora de la generación (quién, cuándo, con qué insumos)
         import bitacora as BT, decretos as DC
         ins = [('Informe del mes', p) for p in ubicar_archivos(carpeta).values()] + [('Presupuesto Vigente', p) for p in pvs.values()] \
               + [('Catálogo Maestro', cfg['catalogo']), ('Reglas de revisión', RV.REGLAS), ('Registro de decretos', DC.REGISTRO)]
-        BT.registrar_generacion(cfg['carpeta_informes'], anio, m, res, ins, crit)
+        hd = SG.huella_datos(salida)          # para comprobar al publicar que las cifras no cambiaron
+        BT.registrar_generacion(cfg['carpeta_informes'], anio, m, res, ins, crit, obs=f'Huella de datos: {hd}')
+        rotas = BT.verificar_cadena(cfg['carpeta_informes'], anio)       # bitácora encadenada: filas alteradas a mano
+        if rotas:
+            av.append(('Revisar', f'Bitácora del agente {anio}: {len(rotas)} fila(s) alteradas o agregadas a mano (' + '; '.join(f'hoja {h}, fila {f}' for h, f, _ in rotas[:5])
+                       + '). La bitácora debe modificarse solo desde el agente'))
     except Exception as e:
         av.append(('Info', f'No se pudo anotar la generación en la bitácora ({type(e).__name__}: {e})'))
     paso(TOTAL, TOTAL, 'Listo')

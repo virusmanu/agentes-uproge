@@ -1,4 +1,4 @@
-AGENTES DE APOYO A LA GESTIÓN – UPROGE · versión 1.7
+AGENTES DE APOYO A LA GESTIÓN – UPROGE · versión 2.0
 ====================================================
 Al abrir aparece la ventana de bienvenida; el botón "Ejecución Presupuestaria - Power BI" abre este agente.
 
@@ -12,13 +12,22 @@ Archivos propios del agente (no forman parte del informe de Power BI):
   - "Registro de decretos.xlsx": fechas del decreto y de toma de razón leídas de los PDF de DIPRES
     (se crea solo; la columna amarilla "Fecha TR manual" permite anotar una fecha a mano).
   - "Bitácora del agente <año>.xlsx" (en la carpeta de informes mensuales): registro de cada generación y de la revisión.
-  - En la carpeta MINAGRI del mes: archivo de revisión, hoja de control, Ideas Fuerza y resumen ejecutivo en Word.
+  - En la carpeta MINAGRI del mes: archivo de revisión, archivo de validación, hoja de control, Ideas Fuerza y
+    resumen ejecutivo en Word, y el dashboard HTML del informe (botón "Generar Dashboard").
+  - "Panel de análisis Agentes UPROGE.html" (en la carpeta de informes mensuales): ficha por asignación,
+    comparador entre meses y decretos, desde la base histórica local (carpeta respaldos del agente).
+
+Desde la versión 2.0 el consolidado del agente es el oficial: el botón "Aprobar y publicar…" lo copia como
+"MINAGRI Consolidado a <Mes> <Año>.xlsx" (el archivo que lee Power BI). Debe aprobarlo una persona distinta de
+la que lo generó, sin rojos pendientes. Las actualizaciones vienen firmadas digitalmente por UPROGE.
 
 Hay DOS formas de usarlo; ambas hacen exactamente lo mismo:
   - VENTANA (recomendada): 3_ABRIR_AGENTE_VENTANA.bat  o el acceso directo del Escritorio.
   - CONSOLA:               2_EJECUTAR_AGENTE.bat
 
 Primera vez (una sola vez por computador):
+  Lo más simple: ejecutar el instalador "Instalar Agentes UPROGE 2.0.exe" (trae Python incluido).
+  Sin instalador:
   1. Tener Python 3.10 o superior (python.org, Microsoft Store o Portal de Empresa).
   2. Doble clic en 1_INSTALAR.bat.
   3. Doble clic en 4_CREAR_ACCESO_DIRECTO_EN_ESCRITORIO.bat (opcional, crea el ícono "Agentes UPROGE").

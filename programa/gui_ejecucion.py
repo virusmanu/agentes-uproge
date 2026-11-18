@@ -276,9 +276,13 @@ class App(tk.Tk):
         self.btn_abrir.pack(side='left')
         self.btn_ideas = ttk.Button(b, text='Ideas Fuerza', style='Secundario.TButton', command=self.ver_ideas); self.btn_ideas.pack(side='left', padx=8)
         self.btn_resumen = ttk.Button(b, text='Resumen ejecutivo', style='Secundario.TButton', command=self.resumen_ejecutivo); self.btn_resumen.pack(side='left', padx=(0, 8))
+        self.btn_dash = ttk.Button(b, text='Generar Dashboard', style='Secundario.TButton', command=self.generar_dashboard)
+        self.btn_dash.pack(side='left', padx=(0, 8))
         self.btn_carpeta = ttk.Button(b, text='Carpeta del mes', style='Secundario.TButton', command=lambda: self.estado and abrir(os.path.join(self.estado['carpeta'], 'MINAGRI')))
         self.btn_carpeta.pack(side='left')
-        for w in (self.btn_abrir, self.btn_ideas, self.btn_resumen): w.state(['disabled'])
+        self.btn_publicar = ttk.Button(b, text='Aprobar y publicar…', style='Secundario.TButton', command=self.aprobar_publicar)
+        self.btn_publicar.pack(side='right'); self.btn_publicar.state(['disabled'])
+        for w in (self.btn_abrir, self.btn_ideas, self.btn_resumen, self.btn_dash): w.state(['disabled'])
 
     def _pie(self):
         pie = tk.Frame(self, bg=GRIS_FONDO, padx=20, pady=8); pie.pack(fill='x', side='bottom')
@@ -289,6 +293,7 @@ class App(tk.Tk):
         if os.path.exists(man): ttk.Button(pie, text='Manual de usuario', style='Secundario.TButton', command=lambda: abrir(man)).pack(side='left')
         ttk.Button(pie, text='Actualizaciones', style='Secundario.TButton', command=lambda: Actualizaciones(self)).pack(side='left', padx=8)
         ttk.Button(pie, text='Historial de versiones', style='Secundario.TButton', command=lambda: HistorialVersiones(self)).pack(side='left')
+        ttk.Button(pie, text='Panel de análisis', style='Secundario.TButton', command=self.panel_analisis).pack(side='left', padx=8)
         tk.Label(pie, text=f'Versión {VERSION if ERROR_INICIO is None else "?"}' + (' beta' if ERROR_INICIO is None and ACT.es_beta(VERSION) else ''),
                  font=self.f['chica'], bg=GRIS_FONDO, fg=GRIS_SUAVE).pack(side='right')
 
@@ -386,7 +391,9 @@ class App(tk.Tk):
             if isinstance(info, str): ruta = info
             elif info.get('url'): ruta = ACT.descargar(info)
             else: ruta = info['archivo']
-            r = ACT.instalar(ruta, log=lambda t: None)
+            gh = not isinstance(info, str) and bool(info.get('url'))
+            r = ACT.instalar(ruta, log=lambda t: None, origen='github' if gh else 'archivo',
+                             confirmar_sin_firma=lambda d: messagebox.askyesno('Sin firma digital', 'Esta actualización no trae firma digital, por lo que el agente no puede comprobar que venga de UPROGE.\n\nInstálela solo si el .zip se lo entregó UPROGE. ¿Instalar igual?', icon='warning', parent=ventana or self))
         except Exception as e:
             self.configure(cursor='')
             messagebox.showerror('No se pudo actualizar', f'{e}\n\nNo se modificó config.ini ni el Catálogo Maestro.', parent=ventana or self); return
@@ -470,6 +477,7 @@ class App(tk.Tk):
             self.lbl_corte.configure(text='El catálogo no tiene fecha para este mes. ' + ('Use "Sugerir fecha" o escríbala.' if est['oficial'] else 'Escríbala (fecha hasta la cual se consideran los decretos).'))
         self.btn_sugerir.state(['!disabled'] if est['oficial'] else ['disabled'])
         self.btn_generar.state(['disabled'] if (est['problemas_archivos'] or errores) else ['!disabled'])
+        self.btn_publicar.state(['!disabled'] if os.path.exists(est['salida']) else ['disabled'])
 
     def sugerir(self):
         if not self.estado or not self.estado['oficial']: return
@@ -550,7 +558,7 @@ class App(tk.Tk):
 
     def _mostrar(self, r):
         self._fin_trabajo(); self.resultado = r
-        for w in (self.btn_abrir, self.btn_ideas, self.btn_resumen): w.state(['!disabled'])
+        for w in (self.btn_abrir, self.btn_ideas, self.btn_resumen, self.btn_dash, self.btn_publicar): w.state(['!disabled'])
         self.prog['value'] = self.prog['maximum']
         self.lbl_prog.configure(text='Listo. Archivo: ' + os.path.basename(r['salida']))
         self.lbl_res.configure(text=f'{r["nombre"]} · corte de decretos {r["corte"]:%d-%m-%Y}')
@@ -586,6 +594,70 @@ class App(tk.Tk):
         messagebox.showinfo('Listo', f'Se generó el consolidado de {r["nombre"]}.\n\n{os.path.basename(r["salida"])}\n\n'
                             + (f'Hay {len(rev)} aviso(s) para revisar.' if rev else 'No hay avisos para revisar.')
                             + (f'\n\nRevisión: {rs["rojos_pendientes"]} rojo(s) sin explicar y {rs["amarillos_pendientes"]} amarillo(s).' if rs else ''))
+
+    # ---------------------------------------------------------------- panel de análisis (base histórica)
+    def panel_analisis(self):
+        import historia as HI
+        try:
+            n = len(HI.meses())
+            if messagebox.askyesno('Panel de análisis', f'La base histórica de este equipo tiene {n} mes(es).\n\n'
+                                   '¿Actualizarla ahora desde los consolidados de las carpetas de los meses (año actual y anterior)? '
+                                   'Toma unos segundos por mes.\n\n(Con "No" se abre el panel con lo que ya tiene.)', parent=self):
+                self.configure(cursor='watch'); self.update()
+                HI.reconstruir([self.cfg.get('carpeta_informes', ''), self.cfg.get('carpeta_informes_anio_anterior', '')], log=lambda t: None)
+            destino = os.path.join(self.cfg.get('carpeta_informes') or os.path.join(RAIZ_AGENTE, 'respaldos'), 'Panel de análisis Agentes UPROGE.html')
+            HI.panel(destino, VERSION)
+        except Exception as e:
+            self.configure(cursor=''); messagebox.showerror('Panel de análisis', f'No se pudo preparar el panel ({type(e).__name__}: {e})', parent=self); return
+        self.configure(cursor=''); abrir(destino)
+
+    # ---------------------------------------------------------------- publicación con doble control
+    def aprobar_publicar(self):
+        """Publica el consolidado del agente como consolidado oficial del mes (el que lee Power BI), con doble control."""
+        import seguridad as SG
+        est = self.estado; r = self.resultado
+        if not est: return
+        anio, m = self.mes_sel()
+        rev = r['revision'] if r and r.get('anio') == anio and r.get('mes') == m else RV._leer(RV.ruta_revision(est['carpeta'], anio, m))
+        e = SG.estado_publicacion(self.cfg, anio, m, est['carpeta'], est['salida'], rev)
+        if not e['puede']:
+            messagebox.showwarning('Aún no se puede publicar', '\n\n'.join('• ' + x for x in e['motivos']), parent=self); return
+        g = e['generacion'] or {}
+        destino = SG.ruta_oficial(est['carpeta'], anio, m)
+        if not messagebox.askyesno('Aprobar y publicar', f'Se publicará el consolidado de {MESES[m - 1]} {anio} como consolidado oficial:\n\n{os.path.basename(destino)}\n\n'
+                                   f'Generado por {g.get("Usuario", "?")} el {g.get("Fecha", "?")} (versión {g.get("Versión del agente", "?")}).\n'
+                                   f'Aprueba: {SG.usuario()}.\n\nEs el archivo que lee el informe Power BI. La aprobación queda en la bitácora. ¿Publicar?', parent=self): return
+        try:
+            self.configure(cursor='watch'); self.update()
+            ruta = SG.publicar(self.cfg, anio, m, est['carpeta'], est['salida'], rev,
+                               confirmar_reemplazo=lambda: messagebox.askyesno('Ya publicado', 'El agente ya había publicado este mes. ¿Reemplazarlo por la versión actual?', parent=self))
+        except Exception as ex:
+            self.configure(cursor=''); messagebox.showwarning('No se publicó', str(ex), parent=self); return
+        self.configure(cursor='')
+        messagebox.showinfo('Publicado', f'Consolidado oficial publicado:\n\n{ruta}\n\nAbra el informe Power BI del mes y presione Actualizar.', parent=self)
+
+    # ---------------------------------------------------------------- dashboard HTML
+    def generar_dashboard(self):
+        """Dashboard HTML autocontenido del mes, con las mismas páginas del informe Power BI. Toma el consolidado tal
+        como está guardado (incluidas las Ideas Fuerza que se hayan editado en el Excel)."""
+        r = self.resultado
+        if not r or not os.path.exists(r['salida']):
+            messagebox.showinfo('Generar Dashboard', 'Primero genere el consolidado del mes.', parent=self); return
+        if _abierto_en_excel(r['salida']) and not messagebox.askyesno('Generar Dashboard', 'El consolidado está abierto en Excel. El dashboard usa la última versión guardada '
+                                                                      '(guarde primero si editó las Ideas Fuerza). ¿Continuar?', parent=self): return
+        try:
+            self.configure(cursor='watch'); self.update()
+            import dashboard as DB
+            ruta = DB.generar(r['salida'], r['anio'], r['mes'], r['carpeta'], VERSION)
+        except Exception as e:
+            self.configure(cursor=''); messagebox.showerror('Generar Dashboard', f'No se pudo generar el dashboard ({type(e).__name__}: {e})', parent=self); return
+        self.configure(cursor='')
+        try:
+            import bitacora as BT; BT.registrar_accion(self.cfg['carpeta_informes'], r['anio'], r['mes'], 'Dashboard HTML generado', os.path.basename(ruta))
+        except Exception: pass
+        if messagebox.askyesno('Dashboard listo', f'Se generó el dashboard del mes:\n\n{os.path.basename(ruta)}\n\nEstá en la carpeta MINAGRI del mes. Es un solo archivo: '
+                               'se abre con doble clic en el navegador y se puede enviar por correo (el mapa necesita internet).\n\n¿Abrirlo ahora?', parent=self):
+            abrir(ruta)
 
     # ---------------------------------------------------------------- validación del corte
     def mostrar_validacion(self):

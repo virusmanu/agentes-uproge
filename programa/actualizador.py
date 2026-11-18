@@ -13,7 +13,7 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CARPETA_RESPALDOS = 'respaldos'
 CATALOGO = 'Catálogo Maestro Ejecución MINAGRI 2026.xlsx'
 # lo que pertenece al programa y se reemplaza al actualizar (lo demás de la carpeta no se toca)
-DEL_PROGRAMA = ('programa', 'recursos', 'version.json', 'LEEME.txt', 'Manual de usuario.pdf', 'Historial de versiones.pdf')
+DEL_PROGRAMA = ('programa', 'recursos', 'version.json', 'LEEME.txt', 'Manual de usuario.pdf', 'Historial de versiones.pdf', 'firma.json')
 NO_TOCAR = ('config.ini', CATALOGO, CARPETA_RESPALDOS)
 
 
@@ -275,13 +275,14 @@ def _fusionar_catalogo(nuevo, actual):
     wb.save(tmp); os.replace(tmp, actual)
     return n
 
-def instalar(ruta_zip, raiz=RAIZ, log=print):
-    """Instala la versión del .zip. Devuelve un dict con lo hecho."""
+def instalar(ruta_zip, raiz=RAIZ, log=print, origen='archivo', confirmar_sin_firma=None):
+    """Instala la versión del .zip. Devuelve un dict con lo hecho.
+    Firma digital (desde la 2.0): una versión desde GitHub solo se instala si su firma es válida; un .zip entregado sin
+    firma se instala solo si confirmar_sin_firma(detalle) devuelve True; una firma inválida siempre se rechaza."""
+    import firma as FI
     info = inspeccionar(ruta_zip)
     actual = leer_version(raiz).get('version', '0')
     log(f'Versión instalada: {actual} · versión del archivo: {info["version"]}')
-    resp = respaldar(raiz, f'antes de instalar la versión {info["version"]}')
-    log(f'Respaldo creado en {os.path.relpath(resp, raiz)}')
     tmp = tempfile.mkdtemp(prefix='agente_act_')
     try:
         with zipfile.ZipFile(ruta_zip) as z:
@@ -293,7 +294,18 @@ def instalar(ruta_zip, raiz=RAIZ, log=print):
                 dest = os.path.join(tmp, *rel.split('/'))
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
                 with z.open(m) as fz, open(dest, 'wb') as fd: shutil.copyfileobj(fz, fd)
-        hechos = []
+        estado, detalle = FI.verificar_carpeta(tmp)
+        log(detalle)
+        if estado == 'invalida':
+            raise ErrorActualizacion(f'Actualización rechazada: {detalle} No se instaló nada. Pida a UPROGE el .zip oficial.')
+        if estado == 'sin firma':
+            if origen == 'github':
+                raise ErrorActualizacion('La versión publicada en GitHub no trae firma digital, por lo que no se instala. Pida a UPROGE el .zip oficial.')
+            if not (confirmar_sin_firma and confirmar_sin_firma(detalle)):
+                raise ErrorActualizacion('Instalación cancelada: el .zip no trae firma digital.')
+        resp = respaldar(raiz, f'antes de instalar la versión {info["version"]}')
+        log(f'Respaldo creado en {os.path.relpath(resp, raiz)}')
+        hechos = [detalle if estado == 'valida' else 'Instalada sin firma digital, con confirmación del usuario']
         # programa: se reemplaza completo (los .py que ya no existan se eliminan)
         _sincronizar_carpeta(os.path.join(tmp, 'programa'), os.path.join(raiz, 'programa'), borrar_sobrantes=True)
         hechos.append('Programa actualizado')

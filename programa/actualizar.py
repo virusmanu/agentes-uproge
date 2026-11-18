@@ -60,7 +60,8 @@ def main():
         print('Cancelado.'); return pausa(sin)
     if info.get('url'):
         print('Descargando...'); info['archivo'] = A.descargar(info)
-    r = A.instalar(info['archivo'])
+    r = A.instalar(info['archivo'], origen='github' if info.get('url') else 'archivo',
+                   confirmar_sin_firma=lambda d: input(f'\n{d} Instálela solo si el .zip se lo entregó UPROGE. ¿Instalar igual? (S/N): ').strip().lower() in ('s', 'si', 'sí'))
     print(f'\nListo: versión {r["version"]} instalada. Si quiere deshacerla: 5_ACTUALIZAR_AGENTE.bat --volver')
     pausa(sin)
 
