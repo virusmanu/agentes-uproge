@@ -643,6 +643,7 @@ class App(tk.Tk):
         r = self.resultado
         if not r or not os.path.exists(r['salida']):
             messagebox.showinfo('Generar Dashboard', 'Primero genere el consolidado del mes.', parent=self); return
+        from proceso import _abierto_en_excel
         if _abierto_en_excel(r['salida']) and not messagebox.askyesno('Generar Dashboard', 'El consolidado está abierto en Excel. El dashboard usa la última versión guardada '
                                                                       '(guarde primero si editó las Ideas Fuerza). ¿Continuar?', parent=self): return
         try:

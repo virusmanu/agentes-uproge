@@ -83,7 +83,7 @@
   "programa/editor_catalogo.py": "e2730a60ebd57fb4f1e8dd0ed47e636a5878962e00552697a99ef81afa83eb10",
   "programa/ejecutar.py": "16a92f2c9970a89b5499e0d07bd1fa6b526049dbbe6e3dea3caeb615d0298bf1",
   "programa/firma.py": "5256313c93a3564f7266666411829ddb627c447e9ac42343652bd104b83055f6",
-  "programa/gui_ejecucion.py": "d8ec57a6d6df5ab2e74ecf269184a3144bd623f39dd77d5af593620d19d0a875",
+  "programa/gui_ejecucion.py": "2818f6ac628b802310fa9c6fc4027c833c27a6c749c673e8c53f7eafd240d1b6",
   "programa/historia.py": "991fa5e388a86f78e5c5ab7b79d1713e1aaaf3b64f57fc90fdccadb289eb0cc9",
   "programa/historial.json": "719962e258463ffc39b3809201608e09c71099ab6a9fde0ffc88de3e2210c174",
   "programa/ideas.py": "c75b917aaa742454d120640e79e9313d230d102bba9182b74fc222a3f71e5457",
@@ -109,5 +109,5 @@
   "recursos/logo_grande.png": "4841eaf41dd561f01f9a7fa77bcb24e7564193d04464a4db7357a58b6b7dbf79",
   "version.json": "aac659960c7c22bde20d4ba2209b7571ca6f31b9b4cf094d424cfa8aeb0cceca"
  },
- "firma": "9ca90b64e41f38d889bbf82e5a38dfde3e999155b540d0cbe565a6fd4f212d6ab7b5b710e71a509d39ca18ce2938bb6a68893aa3572dfe37ba2eb9a169da5705"
+ "firma": "fad60138944147b9ccca4eaaa732f5df1c2a808e413818983deb27e2961b3a5437514615d08d94c764fed612ddff6ac0afaeab0b4a0161cc66b01d783b211908"
 }
