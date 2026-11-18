@@ -142,6 +142,11 @@ def ejecucion(K,path,s,t,av):
     out['Subtítulo']=cat.str[:2]; out['Ítem']=cat.str[:4]; out['Asignación']=cat.str[:7]; out['Subasignación']=cat.str[:10]
     for n,c in [('Subtítulo','Nombre Subtítulo'),('Ítem','Nombre Ítem'),('Asignación','Nombre Asignación'),('Subasignación','Nombre Subasignación')]:
         out[c]=[K.nombre(s,n,v) for v in out[n]]
+    # asignación "000" (ítem no abierto en asignaciones): nombre del ítem con el código de 7 dígitos
+    sin=out['Nombre Asignación'].isna()&out['Asignación'].astype(str).str.fullmatch(r'\d{4}000')&out['Nombre Ítem'].notna()
+    if sin.any():
+        out.loc[sin,'Nombre Asignación']=[f'{a} {str(ni).split(" ",1)[-1]}' for a,ni in zip(out.loc[sin,'Asignación'],out.loc[sin,'Nombre Ítem'])]
+        av.append(('Info',f'{s} {t}: asignaciones "000" sin nombre en la hoja "Clasificador" del catálogo; se usó el nombre del ítem: {", ".join(sorted(out.loc[sin,"Asignación"].unique()))}. Conviene agregarlas al catálogo'))
     for n in ('Subtítulo','Ítem'):
         f=sorted(out.loc[out['Nombre '+n].isna(),n].dropna().unique())
         if f: av.append(('Revisar',f'{s} {t}: códigos de {n} sin nombre en la hoja "Clasificador": {", ".join(f)}'))
