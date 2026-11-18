@@ -1,5 +1,11 @@
 [
  {
+  "version": "1.6.1",
+  "fecha": "18-11-2026",
+  "tipo": "Corrección",
+  "resumen": "Los gastos excedibles por ley salen en amarillo (excedible por regularizar) y no bloquean la hoja de control; la lista está en Reglas de revisión.xlsx, hoja Excedibles."
+ },
+ {
   "version": "1.6",
   "fecha": "17-11-2026",
   "tipo": "Menor",

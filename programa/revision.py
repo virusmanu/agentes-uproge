@@ -28,6 +28,12 @@ UMBRALES = [  # (clave, valor, descripción)
     ('glosa_amarillo', 0.90, 'Glosas: amarillo desde este avance del límite'),
     ('intrapartida_m$', 1, 'Transferencias intrapartida: diferencia máxima (miles de $) entre lo que transfiere SUBSE y lo que recibe el servicio'),
 ]
+EXCEDIBLES = [  # (código o prefijo, denominación, fundamento, activo)
+    ('2599', 'Otros Íntegros al Fisco', 'Ley de Presupuestos 2026, art. 34, en relación con el art. 28 del DL N°1.263: se puede exceder y se sanciona después por decreto de Hacienda (art. 70 DL 1.263)', 'Sí'),
+    ('3407', 'Deuda Flotante', 'Ley de Presupuestos 2026, art. 34, en relación con el art. 28 del DL N°1.263: se puede exceder y se sanciona después por decreto de Hacienda (art. 70 DL 1.263)', 'Sí'),
+    ('2303', 'Prestaciones Sociales del Empleador', 'Art. 28 del DL N°1.263 (gasto excedible) – FUNDAMENTO A CONFIRMAR POR UPROGE', 'Sí'),
+    ('2602', 'Compensaciones por Daños a Terceros y/o a la Propiedad', 'Art. 28 del DL N°1.263 (gasto excedible) – FUNDAMENTO A CONFIRMAR POR UPROGE', 'Sí'),
+]
 PARES = [  # Subsecretaría (Gastos, P04 BID)  ->  servicio receptor (Ingresos)
     ('01 SUBSE', 2402301, '03 INDAP', 'P01', 502032),
     ('01 SUBSE', 3302130, '03 INDAP', 'P01', 1302030),
@@ -52,6 +58,18 @@ def leer_reglas():
         U = {}
     for k, v, _ in UMBRALES: U.setdefault(k, v)
     try:
+        e = pd.read_excel(REGLAS, sheet_name='Excedibles', dtype=str).fillna('')
+    except Exception:
+        e = None
+    if e is None:                                   # archivo de una versión anterior: se agrega la hoja con los valores iniciales
+        try: _agregar_hoja_excedibles()
+        except Exception: pass
+        X = [(c, n, f) for c, n, f, a in EXCEDIBLES if a == 'Sí']
+    else:
+        X = [(str(r['Código']).strip(), r['Denominación'], r['Fundamento']) for _, r in e.iterrows()
+             if str(r['Código']).strip() and str(r['Activo']).strip().lower() in ('sí', 'si', 's', 'x')]
+    U['_excedibles'] = X
+    try:
         p = pd.read_excel(REGLAS, sheet_name='Transferencias intrapartida')
         P = [(r['Servicio que transfiere'], int(r['Asignación de gasto']), r['Servicio que recibe'], str(r['Programa que recibe']).strip(), int(r['Asignación de ingreso']))
              for _, r in p.iterrows() if pd.notna(r['Asignación de gasto']) and pd.notna(r['Asignación de ingreso'])]
@@ -63,12 +81,34 @@ def crear_reglas():
     from openpyxl.styles import Font, PatternFill
     with pd.ExcelWriter(REGLAS, engine='openpyxl') as w:
         pd.DataFrame(UMBRALES, columns=['Clave', 'Valor', 'Descripción']).to_excel(w, sheet_name='Umbrales', index=False)
+        pd.DataFrame(EXCEDIBLES, columns=['Código', 'Denominación', 'Fundamento', 'Activo']).to_excel(w, sheet_name='Excedibles', index=False)
         pd.DataFrame(PARES, columns=['Servicio que transfiere', 'Asignación de gasto', 'Servicio que recibe', 'Programa que recibe', 'Asignación de ingreso']
                      ).to_excel(w, sheet_name='Transferencias intrapartida', index=False)
         for ws in w.book.worksheets:
             for c in ws[1]: c.font = Font(bold=True, color='FFFFFF'); c.fill = PatternFill('solid', fgColor='1F4E5F')
             for col in ws.columns: ws.column_dimensions[col[0].column_letter].width = min(max(len(str(c.value or '')) for c in col) + 2, 110)
             for c in ws['B'][1:]: c.fill = PatternFill('solid', fgColor='FFF2CC')
+
+
+def _agregar_hoja_excedibles():
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill
+    wb = openpyxl.load_workbook(REGLAS)
+    if 'Excedibles' in wb.sheetnames: return
+    ws = wb.create_sheet('Excedibles', 1)
+    ws.append(['Código', 'Denominación', 'Fundamento', 'Activo'])
+    for r in EXCEDIBLES: ws.append(list(r))
+    for c in ws[1]: c.font = Font(bold=True, color='FFFFFF'); c.fill = PatternFill('solid', fgColor='1F4E5F')
+    for col, w in zip('ABCD', (10, 50, 120, 8)): ws.column_dimensions[col].width = w
+    wb.save(REGLAS)
+
+def excedible(cod, X):
+    """(denominación, fundamento) si el código (subtítulo, ítem o asignación) está dentro de un concepto excedible."""
+    c = '' if cod is None or (isinstance(cod, float) and pd.isna(cod)) else str(int(cod)) if not isinstance(cod, str) else cod
+    for pre, nom, fun in X:
+        if c.startswith(pre):
+            return nom, fun
+    return None
 
 
 # ------------------------------------------------------------------ utilidades
@@ -132,6 +172,11 @@ def controles(base, bg, prev, mes, cuadratura, pvs, U, P, corte=None):
     for (s, prog, cod), r in T.iterrows():
         v, d = r['Presupuesto Vigente'], r['Monto Devengo']
         if d <= 0: continue
+        ex = excedible(cod, U['_excedibles'])
+        if ex and d > v * U['sobre_vigente_rojo'] + U['cuadratura_m$']:
+            A.append(_alerta(AMARILLO, 'Excedible por regularizar', s, prog, cod, r['_nom'],
+                             f'Gasto excedible: devengo {_m(d)} M$ sobre vigente {_m(v)} M$ (exceso {_m(d - v)} M$, a sancionar por decreto). {ex[1]}', v, d, d - v))
+            continue
         if v <= 0:
             A.append(_alerta(ROJO, 'Devengo sin presupuesto vigente', s, prog, cod, r['_nom'], f'Devengo {_m(d)} M$ sin presupuesto vigente', v, d))
         elif d > v * U['sobre_vigente_rojo'] + U['cuadratura_m$']:   # tolerancia de redondeo

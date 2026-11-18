@@ -1,13 +1,10 @@
 {
   "programa": "Agentes de Apoyo a la Gestión – UPROGE",
-  "version": "1.6",
+  "version": "1.6.1",
   "fecha": "17-11-2026",
   "cambios": [
-    "Pestaña Revisión: controles con semáforo sobre el devengado (cuadratura, devengo sobre vigente, retrocesos, saltos, sin ejecución y glosas)",
-    "Controles nuevos de consistencia de la Partida: decretos registrados con fechas distintas entre planillas y transferencias intrapartida descuadradas (SUBSE → INDAP y SAG)",
-    "Las alertas en rojo se corrigen en el origen o se aceptan con comentario; la hoja de control para la jefatura solo se exporta sin rojos sin explicar",
-    "Todo queda en archivos aparte (Revisión y Hoja de control); el consolidado que lee Power BI y el Catálogo Maestro no se modifican",
-    "Umbrales en Reglas de revisión.xlsx, junto al programa"
+    "Gastos excedibles: los excesos en conceptos que la ley permite exceder y regularizar después por decreto salen en amarillo (\"Excedible por regularizar\"), no en rojo",
+    "Lista de excedibles en la hoja Excedibles de Reglas de revisión.xlsx: 25.99 y 34.07 (Ley de Presupuestos 2026, art. 34); 23.03 y 26.02 con fundamento a confirmar por UPROGE"
   ],
   "actualiza_catalogo": false
 }
