@@ -6,9 +6,7 @@
   "3_ABRIR_AGENTE_VENTANA.bat": "f56cf3f07a428ac1b96daad8438c46eb902f26b244b83b207e3ef72010ebe5e6",
   "4_CREAR_ACCESO_DIRECTO_EN_ESCRITORIO.bat": "eb57a5b9faf526bf692880b89de98bdf9bb9531b580cf0a6f058e8725ca35324",
   "5_ACTUALIZAR_AGENTE.bat": "3af94e2a66a6ed5e3deca526acbbf331c37e6bd113f56754cfa812b570932d05",
-  "Guía de instalación - Agentes UPROGE.pdf": "95f26178ce79a6082f11fff86ce71f93228351d4bfc48de9ce88544962b0ac83",
   "LEEME.txt": "02ee9588205b051467661bffde93a8cfd11a89e2706b298f7d6c6bdad564dbeb",
-  "Reglas de revisión.xlsx": "8822105d9a7f77a5b018df6fe76f545676eeeffed54bad0dda5eecfd1e06374a",
   "config.ini": "db4a48692e61f859f0f71689a3a76620cf99e4eb8972a182475780279f42cd36",
   "programa/_vendor/leaflet/LICENSE.txt": "53e8dc25862014e4324741ca18fbe3611e11d42ef69f59f86ea8c5389647d4cb",
   "programa/_vendor/leaflet/leaflet.css": "a7837102824184820dfa198d1ebcd109ff6d0ff9a2672a074b9a1b4d147d04c6",
@@ -111,5 +109,5 @@
   "recursos/logo_grande.png": "4841eaf41dd561f01f9a7fa77bcb24e7564193d04464a4db7357a58b6b7dbf79",
   "version.json": "89d44f91e42ea751b8e37c268085c6718094547451772f9c1137fdee37963d5c"
  },
- "firma": "d9d89e17b8ecdb8320b4f8ca6499d418d8d1bc0799a70fe48effb9cf384126b8d1dadcdf4bfae64b2932b43da7483bc4e445c9038757a2acd81eac9390f10900"
+ "firma": "a0f6fa50fbf578c241559b9c1088d5062bda8ebcadb0d52e089f33273c4d373deaa8616d3fb020fc94a3b9d6eea7d157bc2590c49b57ee8706ea6e5f1fde6f0d"
 }
