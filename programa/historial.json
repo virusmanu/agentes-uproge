@@ -1,9 +1,15 @@
 [
  {
+  "version": "1.5g",
+  "fecha": "18-11-2026",
+  "tipo": "Beta",
+  "resumen": "Revisión simplificada: solo quedan las incidencias con impacto cuantitativo o cualitativo en el informe (cuadratura del devengo, devengo sin presupuesto vigente, devengo menor que el mes anterior, transferencias intrapartida descuadradas y decretos cuya fecha cambia el vigente del mes). Ya no se revisan avances cercanos o sobre el vigente, glosas, saltos del mes ni asignaciones sin ejecución: en octubre 2026, de 44 alertas a 5. Incluye la primera versión de prueba para macOS con Apple Silicon."
+ },
+ {
   "version": "1.5h",
   "fecha": "18-11-2026",
   "tipo": "Beta",
-  "resumen": "Fechas de decretos según toma de razón. El agente lee el PDF de cada decreto en DIPRES (o en una carpeta local) y, si el decreto está identificado, aplica la fecha de toma de razón a todos los servicios por igual. Si no está identificado en DIPRES (en trámite de toma de razón o aún no publicado) se mantiene con la fecha de la planilla del servicio: ningún decreto se descarta. La hoja Decretos del archivo de revisión deja la trazabilidad de cada fecha aplicada. Las planillas de Presupuesto Vigente no se modifican. Desde esta versión las correcciones se numeran como betas acumulativas de la 1.5 (letras de la j a la a) hasta la 1.6. La revisión queda simplificada: solo muestra incidencias con impacto en el informe y ya no revisa avances cercanos o sobre el vigente, glosas, saltos ni asignaciones sin ejecución (en octubre, de 44 alertas a 5)."
+  "resumen": "Fechas de decretos según toma de razón. El agente lee el PDF de cada decreto en DIPRES (o en una carpeta local) y, si el decreto está identificado, aplica la fecha de toma de razón a todos los servicios por igual. Si no está identificado en DIPRES (en trámite de toma de razón o aún no publicado) se mantiene con la fecha de la planilla del servicio: ningún decreto se descarta. La hoja Decretos del archivo de revisión deja la trazabilidad de cada fecha aplicada. Las planillas de Presupuesto Vigente no se modifican. Desde esta versión las correcciones se numeran como betas acumulativas de la 1.5 (letras de la j a la a) hasta la 1.6."
  },
  {
   "version": "1.5i",

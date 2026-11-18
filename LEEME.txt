@@ -1,4 +1,4 @@
-AGENTES DE APOYO A LA GESTIÓN – UPROGE · versión 1.5h (beta)
+AGENTES DE APOYO A LA GESTIÓN – UPROGE · versión 1.5g (beta)
 ====================================================
 Al abrir aparece la ventana de bienvenida; el botón "Ejecución Presupuestaria - Power BI" abre este agente.
 
