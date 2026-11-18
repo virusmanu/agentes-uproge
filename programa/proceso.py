@@ -188,7 +188,17 @@ def estado_del_mes(cfg, anio, m, carpeta=None):
     try:
         arch = ubicar_archivos(carpeta); falt = []
     except ErrorAgente as e:
-        arch = {}; falt = [str(e).split('\n')[0]]
+        # se muestran igual los que sí están (los duplicados y faltantes los detalla la revisión previa)
+        import glob
+        from motor import SERV
+        arch = {}
+        for f in glob.glob(os.path.join(carpeta, '*.xls*')):
+            b = os.path.basename(f).lower()
+            if b.startswith('~$'): continue
+            for sv in SERV:
+                for t in ('Gastos', 'Ingresos'):
+                    if b.startswith(sv[:2]) and sv.split()[1].lower() in b and t.lower() in b: arch.setdefault((sv, t), f)
+        falt = [str(e).split('\n')[0]]
     K = Catalogo(cfg['catalogo'])
     mes = f'{anio}-{m:02d}'
     return {'carpeta': carpeta, 'archivos': arch, 'problemas_archivos': falt, 'oficial': oficial_del_mes(carpeta),

@@ -1,5 +1,11 @@
 [
  {
+  "version": "1.6j",
+  "fecha": "18-11-2026",
+  "tipo": "Beta",
+  "resumen": "Manual de usuario rehecho a fondo, con guía rápida del mes, explicación de cada paso, 19 imágenes actualizadas de la versión 1.6, problemas frecuentes y glosario. Ajustes menores de la ventana: pestañas con nombres que se leen completos, botones de Ideas Fuerza siempre visibles y marcas por servicio correctas cuando hay un informe duplicado."
+ },
+ {
   "version": "1.6",
   "fecha": "18-11-2026",
   "tipo": "Mayor",

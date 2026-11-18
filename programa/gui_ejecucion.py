@@ -173,7 +173,7 @@ class App(tk.Tk):
         self.lbl_res = ttk.Label(h, text='Aún no se ha generado el consolidado.', style='Suave.TLabel'); self.lbl_res.pack(side='left', padx=12)
         self.nb = ttk.Notebook(tr); self.nb.pack(fill='both', expand=True, pady=(8, 8))
         # pestaña ejecución
-        p1 = ttk.Frame(self.nb, style='Tarjeta.TFrame', padding=(0, 8)); self.nb.add(p1, text='Ejecución de gastos')
+        p1 = ttk.Frame(self.nb, style='Tarjeta.TFrame', padding=(0, 8)); self.nb.add(p1, text='Ejecución')
         cols = ('serv', 'vig', 'dev', 'pct')
         self.tv = ttk.Treeview(p1, columns=cols, show='headings', height=8)
         for c, t, w, a in (('serv', 'Servicio', 140, 'w'), ('vig', 'Vigente ($ MM)', 130, 'e'), ('dev', 'Devengado ($ MM)', 140, 'e'), ('pct', '% avance', 90, 'e')):
@@ -525,7 +525,7 @@ class App(tk.Tk):
         if not rev: self.txt_av.insert('end', '✔ No hay avisos para revisar.\n\n', 'ok')
         for t in rev: self.txt_av.insert('end', '⚠ ' + t + '\n\n', 'rev')
         for t in inf: self.txt_av.insert('end', 'ℹ ' + t + '\n\n', 'info')
-        self.nb.tab(1, text=f'Avisos ({len(rev)} para revisar)' if rev else 'Avisos')
+        self.nb.tab(1, text=f'Avisos ({len(rev)})' if rev else 'Avisos')
         pend = r.get('pendientes') or []
         self.btn_cat.state(['!disabled'] if pend else ['disabled'])
         self.lbl_cat.configure(text=f'{len(pend)} elemento(s) sin registrar en el Catálogo Maestro' if pend else 'El Catálogo Maestro tiene todo lo que trae el mes')
@@ -887,7 +887,7 @@ class VerIdeas(tk.Toplevel):
                 fin = self.txt.search(']', p, stopindex='end') or 'end'
                 self.txt.tag_add('marca', p, f'{fin}+1c'); ini = f'{fin}+1c'
         lista.bind('<<ListboxSelect>>', mostrar); lista.selection_set(0); mostrar()
-        b = tk.Frame(self, bg=BLANCO, padx=16, pady=12); b.pack(fill='x')
+        b = tk.Frame(self, bg=BLANCO, padx=16, pady=12); b.pack(fill='x', side='bottom', before=cuerpo)
         ttk.Button(b, text='Copiar texto', style='Primario.TButton', command=self.copiar).pack(side='left')
         ttk.Button(b, text='Abrir en Word', style='Secundario.TButton', command=lambda: self.word(r)).pack(side='left', padx=8)
         ttk.Button(b, text='Cerrar', style='Secundario.TButton', command=self.destroy).pack(side='right')
