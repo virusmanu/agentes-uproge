@@ -6,6 +6,7 @@
     "Decretos aplicados desde su toma de razón, verificada en el PDF que publica DIPRES (lector de PDF incluido; carpeta local opcional)",
     "Decretos no identificados en DIPRES (en trámite o aún no publicados): se mantienen con la fecha de la planilla, sin descartarse",
     "Hoja Decretos en el archivo de revisión del mes: fecha de la planilla, fechas DIPRES, fecha aplicada y su origen; Registro de decretos.xlsx con columna para fecha manual",
+    "Revisión simplificada: solo incidencias con impacto en el informe (cuadratura, devengo sin vigente, devengo menor que el mes anterior, transferencias intrapartida y decretos que cambian el vigente del mes); se eliminan devengo cerca o sobre el vigente, glosas, salto del mes y sin ejecución",
     "Revisión: controles de fechas de planilla contra DIPRES; criterio configurable en Reglas de revisión.xlsx (hoja Criterios)",
     "Numeración: la 1.5 queda como versión estable y las correcciones son betas acumulativas 1.5j, 1.5i, 1.5h… hasta la 1.6"
   ],

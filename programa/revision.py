@@ -16,16 +16,8 @@ COLS = ['Nivel', 'Control', 'Servicio', 'Programa', 'Código', 'Nombre', 'Detall
         'Estado', 'Comentario', 'Usuario', 'Fecha', 'Clave']
 
 UMBRALES = [  # (clave, valor, descripción)
-    ('cuadratura_m$', 1, 'Cuadratura: diferencia máxima (miles de $) entre el devengo del informe bruto y el consolidado'),
-    ('sobre_vigente_rojo', 1.00, 'Devengo sobre vigente: rojo si el avance supera este valor (1 = 100%)'),
-    ('sobre_vigente_amarillo', 0.95, 'Devengo sobre vigente: amarillo desde este avance, solo antes del mes indicado'),
-    ('sobre_vigente_amarillo_hasta_mes', 10, 'Último mes en que se aplica el amarillo de devengo sobre vigente (10 = octubre)'),
-    ('retroceso_m$', 1, 'Devengo acumulado menor que el del mes anterior: diferencia mínima (miles de $)'),
-    ('salto_veces', 3, 'Salto del mes: devengo del mes mayor que N veces el promedio mensual anterior'),
-    ('sin_ejecucion_desde_mes', 6, 'Sin ejecución: se revisa desde este mes (6 = junio)'),
-    ('materialidad', 0.005, 'Asignación relevante (para los amarillos): vigente igual o mayor a esta proporción del vigente del servicio (0,005 = 0,5%)'),
-    ('glosa_rojo', 1.00, 'Glosas: rojo si el devengo supera este avance del límite'),
-    ('glosa_amarillo', 0.90, 'Glosas: amarillo desde este avance del límite'),
+    ('cuadratura_m$', 1, 'Cuadratura: diferencia máxima (miles de $) entre el devengo del informe bruto y el consolidado; también es la tolerancia de redondeo'),
+    ('retroceso_m$', 1, 'Devengo acumulado menor que el del mes anterior: diferencia mínima (miles de $) para alertar'),
     ('intrapartida_m$', 1, 'Transferencias intrapartida: diferencia máxima (miles de $) entre lo que transfiere SUBSE y lo que recibe el servicio'),
 ]
 EXCEDIBLES = [  # (código o prefijo, denominación, fundamento, activo)
@@ -61,6 +53,10 @@ def leer_reglas():
     except Exception:
         U = {}
     for k, v, _ in UMBRALES: U.setdefault(k, v)
+    if any(k not in {c for c, *_ in UMBRALES} for k in U):      # reglas de una versión anterior: se simplifica la hoja
+        try: _reescribir_umbrales(U)
+        except Exception: pass
+        U = {k: U[k] for k, *_ in UMBRALES}
     try:
         e = pd.read_excel(REGLAS, sheet_name='Excedibles', dtype=str).fillna('')
     except Exception:
@@ -103,6 +99,18 @@ def crear_reglas():
             for col in ws.columns: ws.column_dimensions[col[0].column_letter].width = min(max(len(str(c.value or '')) for c in col) + 2, 110)
             for c in ws['B'][1:]: c.fill = PatternFill('solid', fgColor='FFF2CC')
 
+
+def _reescribir_umbrales(U):
+    """Deja en la hoja Umbrales solo los umbrales vigentes, conservando los valores que haya ajustado UPROGE."""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill
+    wb = openpyxl.load_workbook(REGLAS); i = wb.sheetnames.index('Umbrales'); del wb['Umbrales']
+    ws = wb.create_sheet('Umbrales', i); ws.append(['Clave', 'Valor', 'Descripción'])
+    for k, v, d in UMBRALES: ws.append([k, U.get(k, v), d])
+    for c in ws[1]: c.font = Font(bold=True, color='FFFFFF'); c.fill = PatternFill('solid', fgColor='1F4E5F')
+    for c in ws['B'][1:]: c.fill = PatternFill('solid', fgColor='FFF2CC')
+    for col, w in zip('ABC', (18, 10, 120)): ws.column_dimensions[col].width = w
+    wb.save(REGLAS)
 
 def _agregar_hoja_excedibles():
     import openpyxl
@@ -204,20 +212,21 @@ def _control_fechas_dipres(corte, crit):
                 usa_decreto.setdefault(s, []).append((n, fp, pd.Timestamp(ap)))
                 continue
             cruza = c is not None and ((fp <= c) != (pd.Timestamp(ap) <= c))
-            A.append(_alerta(ROJO if cruza else AMARILLO, 'Fecha de decreto no coincide con DIPRES', s, '', f'N°{n}', 'Decreto',
+            if not cruza: continue       # no cambia el vigente del mes: queda solo en la hoja Decretos
+            A.append(_alerta(ROJO, 'Fecha de decreto no coincide con DIPRES', s, '', f'N°{n}', 'Decreto',
                              f'La planilla registra el decreto N°{n} con fecha {fp:%d-%m-%Y}; en DIPRES el decreto es del '
                              + (f'{pd.Timestamp(fd):%d-%m-%Y}' if fd is not None else '[sin fecha]')
                              + (f' y la toma de razón del {pd.Timestamp(tr):%d-%m-%Y}' if tr is not None else '')
                              + f'. El agente aplicó {pd.Timestamp(ap):%d-%m-%Y}'
                              + (f'; con la fecha de la planilla el decreto habría quedado {"dentro" if fp <= c else "fuera"} del corte del {c:%d-%m-%Y}. '
-                                'Revise que el N° de decreto esté bien digitado en la planilla' if cruza else '. Revise la planilla del servicio')))
+                                'Revise que el N° de decreto esté bien digitado en la planilla' if cruza else '')))
     for s, l in usa_decreto.items():
+        # solo cuando la diferencia de fecha cambia el vigente del mes (el decreto queda al otro lado del corte)
         cr = [x for x in l if c is not None and ((x[1] <= c) != (x[2] <= c))]
-        A.append(_alerta(AMARILLO, 'Planilla registra fecha del decreto (no la toma de razón)', s, '', '', 'Decretos',
-                         f'{len(l)} decreto(s) registrados con la fecha del decreto en vez de la toma de razón: '
-                         + ', '.join(f'N°{n} ({fp:%d-%m-%Y} → TR {ap:%d-%m-%Y})' for n, fp, ap in l)
-                         + ('. El agente aplicó la toma de razón' + (f'; con el corte del {c:%d-%m-%Y} esto cambia el vigente de: '
-                            + ', '.join(f'N°{n}' for n, *_ in cr) if cr else '') + '. Conviene unificar el criterio con el servicio')))
+        if not cr: continue
+        A.append(_alerta(AMARILLO, 'Decreto con toma de razón posterior al corte', s, '', ', '.join(f'N°{n}' for n, *_ in cr), 'Decretos',
+                         'La planilla registra con la fecha del decreto: ' + '; '.join(f'N°{n} ({fp:%d-%m-%Y}, toma de razón {ap:%d-%m-%Y})' for n, fp, ap in cr)
+                         + f'. Con el corte del {c:%d-%m-%Y} el agente ' + ('los dejó' if len(cr) > 1 else 'lo dejó') + ' fuera del vigente del mes, aunque la planilla del servicio ya ' + ('los incluye' if len(cr) > 1 else 'lo incluye')))
     return A
 
 def controles(base, bg, prev, mes, cuadratura, pvs, U, P, corte=None):
@@ -232,53 +241,24 @@ def controles(base, bg, prev, mes, cuadratura, pvs, U, P, corte=None):
                              f'El informe bruto suma {_m(c["Devengo informe"])} M$ de devengo; consolidado {_m(cons.get((s, t), 0))} M$ y excluido por programa '
                              f'{_m(c["Devengo excluido por programa"])} M$ (diferencia {_m(dif)} M$)', None, c['Devengo informe'], dif))
     T = _tabla(base)
-    vig_serv = base[base.Tipo == 'Gastos'].groupby('Servicio')['Presupuesto Vigente'].sum()
-    relevante = lambda s, v: v >= U['materialidad'] * vig_serv.get(s, 0) and v > 0
-    # 2. Devengo sobre vigente
+    # 2. Devengo sin presupuesto vigente: el devengo cae en un código que no tiene vigente en la planilla
+    #    (suele ser una diferencia de clasificación entre el informe contable y la planilla; deja la fila sin vigente
+    #    en el informe). No se revisan avances cercanos al 100% ni sobre el vigente: el registro contable es el que vale.
     for (s, prog, cod), r in T.iterrows():
         v, d = r['Presupuesto Vigente'], r['Monto Devengo']
-        if d <= 0: continue
-        ex = excedible(cod, U['_excedibles'])
-        if ex and d > v * U['sobre_vigente_rojo'] + U['cuadratura_m$']:
-            A.append(_alerta(AMARILLO, 'Excedible por regularizar', s, prog, cod, r['_nom'],
-                             f'Gasto excedible: devengo {_m(d)} M$ sobre vigente {_m(v)} M$ (exceso {_m(d - v)} M$, a sancionar por decreto). {ex[1]}', v, d, d - v))
-            continue
-        if v <= 0:
-            A.append(_alerta(ROJO, 'Devengo sin presupuesto vigente', s, prog, cod, r['_nom'], f'Devengo {_m(d)} M$ sin presupuesto vigente', v, d))
-        elif d > v * U['sobre_vigente_rojo'] + U['cuadratura_m$']:   # tolerancia de redondeo
-            A.append(_alerta(ROJO, 'Devengo sobre el vigente', s, prog, cod, r['_nom'], f'Avance {_p(d / v)}: devengo {_m(d)} M$ sobre vigente {_m(v)} M$', v, d, d / v))
-        elif d / v >= U['sobre_vigente_amarillo'] and mes <= U['sobre_vigente_amarillo_hasta_mes'] and relevante(s, v):
-            A.append(_alerta(AMARILLO, 'Devengo cerca del vigente', s, prog, cod, r['_nom'], f'Avance {_p(d / v)} en {MESES[mes - 1].lower()}', v, d, d / v))
-    # 3 y 4. Comparación con el mes anterior
+        if d > U['cuadratura_m$'] and v <= 0 and not excedible(cod, U['_excedibles']):
+            A.append(_alerta(ROJO, 'Devengo sin presupuesto vigente', s, prog, cod, r['_nom'],
+                             f'Devengo {_m(d)} M$ en un código sin presupuesto vigente en la planilla. Revise la clasificación '
+                             '(informe contable vs. planilla de Presupuesto Vigente)', v, d))
+    # 3. Devengo acumulado menor que el del mes anterior (cambia la ejecución informada del mes)
     if prev is not None and mes > 1:
         Tp = _tabla(prev)
         J = T.join(Tp[['Monto Devengo']].rename(columns={'Monto Devengo': 'Dev ant'}), how='left')
         for (s, prog, cod), r in J.iterrows():
             d, da, v = r['Monto Devengo'], r['Dev ant'], r['Presupuesto Vigente']
-            if pd.isna(da): continue
-            if d < da - U['retroceso_m$']:
+            if pd.notna(da) and d < da - U['retroceso_m$']:
                 A.append(_alerta(ROJO, 'Devengo menor que el mes anterior', s, prog, cod, r['_nom'],
                                  f'Devengo acumulado {_m(d)} M$; en {MESES[mes - 2].lower()} era {_m(da)} M$ (baja {_m(da - d)} M$)', v, d, da))
-            elif mes > 2 and relevante(s, v):
-                mensual, prom = d - da, da / (mes - 1)
-                if prom > 0 and mensual > U['salto_veces'] * prom:
-                    A.append(_alerta(AMARILLO, 'Salto del mes', s, prog, cod, r['_nom'],
-                                     f'Devengo del mes {_m(mensual)} M$, {mensual / prom:,.1f}'.replace('.', ',') + f' veces el promedio mensual anterior ({_m(prom)} M$)', v, d, mensual))
-    # 5. Sin ejecución
-    if mes >= U['sin_ejecucion_desde_mes']:
-        for (s, prog, cod), r in T.iterrows():
-            if relevante(s, r['Presupuesto Vigente']) and r['Monto Devengo'] == 0:
-                A.append(_alerta(AMARILLO, 'Sin ejecución', s, prog, cod, r['_nom'], f'Vigente {_m(r["Presupuesto Vigente"])} M$ sin devengo a {MESES[mes - 1].lower()}',
-                                 r['Presupuesto Vigente'], 0.0))
-    # 6. Glosas
-    G = bg.groupby(['Servicio', 'Programa', 'Glosa'])[['Presupuesto Vigente', 'Monto Devengo']].sum()
-    for (s, prog, gl), r in G.iterrows():
-        v, d = r['Presupuesto Vigente'], r['Monto Devengo']
-        if v <= 0 or d <= 0: continue
-        if d > v * U['glosa_rojo'] + U['cuadratura_m$']:
-            A.append(_alerta(ROJO, 'Glosa sobre su límite', s, prog, None, gl, f'Devengo {_m(d)} M$ sobre el límite vigente {_m(v)} M$ ({_p(d / v)})', v, d, d / v))
-        elif d / v >= U['glosa_amarillo']:
-            A.append(_alerta(AMARILLO, 'Glosa cerca de su límite', s, prog, None, gl, f'Avance {_p(d / v)} del límite vigente', v, d, d / v))
     # 7. Decretos registrados con fechas distintas entre planillas (solo si se usa la fecha de cada planilla;
     #    con el criterio de toma de razón el agente aplica una sola fecha DIPRES a todos los servicios)
     crit = U.get('_criterios', {}).get('criterio_fecha_decreto', 'Toma de razón')
