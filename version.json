@@ -1,10 +1,12 @@
 {
   "programa": "Agentes de Apoyo a la Gestión – UPROGE",
-  "version": "1.6.1",
-  "fecha": "17-11-2026",
+  "version": "1.7",
+  "fecha": "18-11-2026",
   "cambios": [
-    "Gastos excedibles: los excesos en conceptos que la ley permite exceder y regularizar después por decreto salen en amarillo (\"Excedible por regularizar\"), no en rojo",
-    "Lista de excedibles en la hoja Excedibles de Reglas de revisión.xlsx: 25.99 y 34.07 (Ley de Presupuestos 2026, art. 34); 23.03 y 26.02 con fundamento a confirmar por UPROGE"
+    "Los decretos de modificación se aplican desde su toma de razón (criterio UPROGE): el agente verifica cada decreto en el PDF que publica DIPRES y usa esa fecha para la fecha de corte, aunque la planilla registre otra",
+    "Lector de PDF incluido (pypdf); carpeta local opcional de decretos y \"Registro de decretos.xlsx\" con las fechas leídas y una columna para anotar la fecha a mano",
+    "Revisión: nuevos controles de fechas de decretos contra DIPRES (fecha que no coincide, planilla con fecha del decreto en vez de la toma de razón, decreto sin toma de razón verificada)",
+    "Criterio configurable en Reglas de revisión.xlsx, hoja Criterios (Toma de razón, Decreto o Planilla)"
   ],
   "actualiza_catalogo": false
 }

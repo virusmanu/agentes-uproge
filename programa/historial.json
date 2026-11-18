@@ -1,5 +1,11 @@
 [
  {
+  "version": "1.7",
+  "fecha": "18-11-2026",
+  "tipo": "Mejora",
+  "resumen": "Fechas de decretos según toma de razón. El agente lee el PDF de cada decreto en DIPRES (o en una carpeta local), obtiene la fecha del decreto y la de toma de razón, y aplica esta última para la fecha de corte en todos los servicios por igual. Las fechas quedan en \"Registro de decretos.xlsx\", donde se puede anotar una fecha a mano. La revisión agrega controles que contrastan la fecha de cada planilla con DIPRES. Las planillas de Presupuesto Vigente no se modifican. En octubre esto dejó cuadradas las transferencias BID entre la Subsecretaría, INDAP y SAG."
+ },
+ {
   "version": "1.6.1",
   "fecha": "18-11-2026",
   "tipo": "Corrección",

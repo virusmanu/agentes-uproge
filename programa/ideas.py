@@ -127,7 +127,8 @@ def decretos_del_periodo(pvs, desde, hasta):
     """Decretos (Gastos) con fecha en (desde, hasta], por servicio: [(N°, descripción, monto M$)]."""
     out = {}
     for s, p in pvs.items():
-        b = pd.read_excel(p, sheet_name='Base Presupuesto')
+        import motor
+        b = motor.base_presupuesto(p)          # con las fechas de decreto ya ajustadas al criterio
         b = b[(b.Documento == 'Decreto') & (b.Tipo == 'Gastos') & b['Monto M$'].notna() & (b['Fecha Documento'] > desde) & (b['Fecha Documento'] <= hasta)]
         if len(b):
             b = b.assign(D=b['Descripción Documento'].fillna('').astype(str).str.strip())

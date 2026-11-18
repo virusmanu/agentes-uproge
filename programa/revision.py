@@ -34,6 +34,10 @@ EXCEDIBLES = [  # (código o prefijo, denominación, fundamento, activo)
     ('2303', 'Prestaciones Sociales del Empleador', 'Art. 28 del DL N°1.263 (gasto excedible) – FUNDAMENTO A CONFIRMAR POR UPROGE', 'Sí'),
     ('2602', 'Compensaciones por Daños a Terceros y/o a la Propiedad', 'Art. 28 del DL N°1.263 (gasto excedible) – FUNDAMENTO A CONFIRMAR POR UPROGE', 'Sí'),
 ]
+CRITERIOS = [  # (clave, valor, descripción)
+    ('criterio_fecha_decreto', 'Toma de razón', 'Fecha desde la que un decreto de modificación se aplica al presupuesto vigente: "Toma de razón" (criterio UPROGE, '
+     'se verifica en DIPRES), "Decreto" (fecha del decreto en DIPRES) o "Planilla" (la que registra cada servicio)'),
+]
 PARES = [  # Subsecretaría (Gastos, P04 BID)  ->  servicio receptor (Ingresos)
     ('01 SUBSE', 2402301, '03 INDAP', 'P01', 502032),
     ('01 SUBSE', 3302130, '03 INDAP', 'P01', 1302030),
@@ -70,6 +74,15 @@ def leer_reglas():
              if str(r['Código']).strip() and str(r['Activo']).strip().lower() in ('sí', 'si', 's', 'x')]
     U['_excedibles'] = X
     try:
+        c = pd.read_excel(REGLAS, sheet_name='Criterios', dtype=str).fillna('')
+        C = {str(k).strip(): str(v).strip() for k, v in zip(c['Clave'], c['Valor'])}
+    except Exception:
+        try: _agregar_hoja_criterios()
+        except Exception: pass
+        C = {}
+    for k, v, _ in CRITERIOS: C[k] = C.get(k) or v
+    U['_criterios'] = C
+    try:
         p = pd.read_excel(REGLAS, sheet_name='Transferencias intrapartida')
         P = [(r['Servicio que transfiere'], int(r['Asignación de gasto']), r['Servicio que recibe'], str(r['Programa que recibe']).strip(), int(r['Asignación de ingreso']))
              for _, r in p.iterrows() if pd.notna(r['Asignación de gasto']) and pd.notna(r['Asignación de ingreso'])]
@@ -82,6 +95,7 @@ def crear_reglas():
     with pd.ExcelWriter(REGLAS, engine='openpyxl') as w:
         pd.DataFrame(UMBRALES, columns=['Clave', 'Valor', 'Descripción']).to_excel(w, sheet_name='Umbrales', index=False)
         pd.DataFrame(EXCEDIBLES, columns=['Código', 'Denominación', 'Fundamento', 'Activo']).to_excel(w, sheet_name='Excedibles', index=False)
+        pd.DataFrame(CRITERIOS, columns=['Clave', 'Valor', 'Descripción']).to_excel(w, sheet_name='Criterios', index=False)
         pd.DataFrame(PARES, columns=['Servicio que transfiere', 'Asignación de gasto', 'Servicio que recibe', 'Programa que recibe', 'Asignación de ingreso']
                      ).to_excel(w, sheet_name='Transferencias intrapartida', index=False)
         for ws in w.book.worksheets:
@@ -101,6 +115,23 @@ def _agregar_hoja_excedibles():
     for c in ws[1]: c.font = Font(bold=True, color='FFFFFF'); c.fill = PatternFill('solid', fgColor='1F4E5F')
     for col, w in zip('ABCD', (10, 50, 120, 8)): ws.column_dimensions[col].width = w
     wb.save(REGLAS)
+
+def _agregar_hoja_criterios():
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill
+    wb = openpyxl.load_workbook(REGLAS)
+    if 'Criterios' in wb.sheetnames: return
+    ws = wb.create_sheet('Criterios', 2)
+    ws.append(['Clave', 'Valor', 'Descripción'])
+    for r in CRITERIOS: ws.append(list(r))
+    for c in ws[1]: c.font = Font(bold=True, color='FFFFFF'); c.fill = PatternFill('solid', fgColor='1F4E5F')
+    for c in ws['B'][1:]: c.fill = PatternFill('solid', fgColor='FFF2CC')
+    for col, w in zip('ABC', (26, 16, 150)): ws.column_dimensions[col].width = w
+    wb.save(REGLAS)
+
+def criterio_fecha_decreto():
+    try: return leer_reglas()[0]['_criterios']['criterio_fecha_decreto']
+    except Exception: return CRITERIOS[0][1]
 
 def excedible(cod, X):
     """(denominación, fundamento) si el código (subtítulo, ítem o asignación) está dentro de un concepto excedible."""
@@ -154,6 +185,51 @@ def _p(v):
 
 
 # ------------------------------------------------------------------ controles
+def _control_fechas_dipres(corte, crit):
+    """Contrasta la fecha que registra cada planilla con las fechas DIPRES (verificadas en decretos.verificar)."""
+    try:
+        import decretos as DC
+        info = (DC.ULTIMO or {}).get('fechas', {})
+    except Exception:
+        info = {}
+    A = []; usa_decreto = {}; c = pd.Timestamp(corte) if corte is not None else None
+    for n, i in sorted(info.items()):
+        ap = i.get('aplicada'); tr = i.get('manual') or i.get('tr'); fd = i.get('decreto')
+        for s, fp in i['planillas'].items():
+            if fp is None or pd.isna(fp): continue
+            fp = pd.Timestamp(fp)
+            if ap is None:
+                # sin fecha DIPRES: se usó la de la planilla. Solo importa si el decreto quedó dentro del vigente
+                # (los decretos antiguos ya estaban tramitados antes del corte: se avisan solo los recientes)
+                if c is None or (c - pd.Timedelta(days=45) < fp <= c):
+                    e = str(i.get('error') or '')
+                    e = ('sin conexión con DIPRES' if e.startswith('sin_conexion') else 'no está publicado en DIPRES' if e.startswith('no_publicado')
+                         else 'el PDF no se pudo leer' if e.startswith('pdf_ilegible') else e or 'sin datos')
+                    A.append(_alerta(AMARILLO, 'Decreto sin toma de razón verificada', s, '', f'N°{n}', 'Decreto',
+                                     f'No verifiqué la toma de razón del decreto N°{n} ({e}); se usó la fecha de la planilla ({fp:%d-%m-%Y}). '
+                                     'Verifique la toma de razón y, si corresponde, anótela en "Registro de decretos.xlsx" (Fecha TR manual)'))
+                continue
+            if fp == pd.Timestamp(ap): continue
+            if crit == 'Toma de razón' and fd is not None and fp == pd.Timestamp(fd):
+                usa_decreto.setdefault(s, []).append((n, fp, pd.Timestamp(ap)))
+                continue
+            cruza = c is not None and ((fp <= c) != (pd.Timestamp(ap) <= c))
+            A.append(_alerta(ROJO if cruza else AMARILLO, 'Fecha de decreto no coincide con DIPRES', s, '', f'N°{n}', 'Decreto',
+                             f'La planilla registra el decreto N°{n} con fecha {fp:%d-%m-%Y}; en DIPRES el decreto es del '
+                             + (f'{pd.Timestamp(fd):%d-%m-%Y}' if fd is not None else '[sin fecha]')
+                             + (f' y la toma de razón del {pd.Timestamp(tr):%d-%m-%Y}' if tr is not None else '')
+                             + f'. El agente aplicó {pd.Timestamp(ap):%d-%m-%Y}'
+                             + (f'; con la fecha de la planilla el decreto habría quedado {"dentro" if fp <= c else "fuera"} del corte del {c:%d-%m-%Y}. '
+                                'Revise que el N° de decreto esté bien digitado en la planilla' if cruza else '. Revise la planilla del servicio')))
+    for s, l in usa_decreto.items():
+        cr = [x for x in l if c is not None and ((x[1] <= c) != (x[2] <= c))]
+        A.append(_alerta(AMARILLO, 'Planilla registra fecha del decreto (no la toma de razón)', s, '', '', 'Decretos',
+                         f'{len(l)} decreto(s) registrados con la fecha del decreto en vez de la toma de razón: '
+                         + ', '.join(f'N°{n} ({fp:%d-%m-%Y} → TR {ap:%d-%m-%Y})' for n, fp, ap in l)
+                         + ('. El agente aplicó la toma de razón' + (f'; con el corte del {c:%d-%m-%Y} esto cambia el vigente de: '
+                            + ', '.join(f'N°{n}' for n, *_ in cr) if cr else '') + '. Conviene unificar el criterio con el servicio')))
+    return A
+
 def controles(base, bg, prev, mes, cuadratura, pvs, U, P, corte=None):
     A = []
     # 1. Cuadratura del devengo: informe bruto = consolidado + excluido por programa
@@ -213,8 +289,10 @@ def controles(base, bg, prev, mes, cuadratura, pvs, U, P, corte=None):
             A.append(_alerta(ROJO, 'Glosa sobre su límite', s, prog, None, gl, f'Devengo {_m(d)} M$ sobre el límite vigente {_m(v)} M$ ({_p(d / v)})', v, d, d / v))
         elif d / v >= U['glosa_amarillo']:
             A.append(_alerta(AMARILLO, 'Glosa cerca de su límite', s, prog, None, gl, f'Avance {_p(d / v)} del límite vigente', v, d, d / v))
-    # 7. Decretos registrados con fechas distintas entre planillas
-    if pvs:
+    # 7. Decretos registrados con fechas distintas entre planillas (solo si se usa la fecha de cada planilla;
+    #    con el criterio de toma de razón el agente aplica una sola fecha DIPRES a todos los servicios)
+    crit = U.get('_criterios', {}).get('criterio_fecha_decreto', 'Toma de razón')
+    if pvs and crit == 'Planilla':
         filas = []
         for s, ruta in pvs.items():
             try:
@@ -233,6 +311,9 @@ def controles(base, bg, prev, mes, cuadratura, pvs, U, P, corte=None):
                                  f'El decreto N°{n} está registrado con fechas distintas en las planillas de Presupuesto Vigente ({det}); '
                                  + (f'con el corte del {pd.Timestamp(corte):%d-%m-%Y} quedó incluido en unos servicios y excluido en otros' if corte is not None else
                                     'con la fecha de corte puede quedar incluido en un servicio y excluido en otro')))
+    # 9. Fechas de las planillas contrastadas con DIPRES (decreto y toma de razón)
+    if crit != 'Planilla':
+        A.extend(_control_fechas_dipres(corte, crit))
     # 8. Transferencias intrapartida: lo que transfiere SUBSE = lo que recibe el servicio
     def vig(s, tipo, cod, prog=None):
         x = base[(base.Servicio == s) & (base.Tipo == tipo) & (_num(base['Asignación']) == cod)]

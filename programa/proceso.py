@@ -34,6 +34,7 @@ def leer_config():
             'carpeta_informes_anio_anterior': g.get('carpeta_informes_anio_anterior', '').strip(),
             'catalogo': cat,
             'carpeta_actualizaciones': g.get('carpeta_actualizaciones', '').strip(),
+            'carpeta_decretos': g.get('carpeta_decretos', '').strip(),
             'repositorio_github': g.get('repositorio_github', '').strip()}
 
 def guardar_config(cfg):
@@ -132,11 +133,19 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
     log(texto): mensajes de avance. paso(n, total, texto): para barras de progreso."""
     nombre = f'{MESES[m-1]} {anio}'
     carpeta = carpeta or carpeta_del_mes(cfg['carpeta_informes'], anio, m)
-    TOTAL = 23; n = [0]
+    TOTAL = 24; n = [0]
     def avanzar(t):
         n[0] += 1; paso(min(n[0], TOTAL), TOTAL, t); log(t)
     avanzar('Leyendo el Catálogo Maestro y las planillas de Presupuesto Vigente')
     K = Catalogo(cfg['catalogo']); pvs = planillas_pv(cfg['carpeta_presupuesto_vigente'])
+    avanzar('Verificando fechas de decretos en DIPRES (toma de razón)')
+    import motor, decretos as DC
+    crit = RV.criterio_fecha_decreto(); motor.FECHAS_DECRETO.clear(); av_dec = []
+    try:
+        aplicar, _, av_dec = DC.verificar(pvs, anio, crit, cfg.get('carpeta_decretos', ''), log=log)
+        motor.FECHAS_DECRETO.update(aplicar)
+    except Exception as e:
+        av_dec = [('Revisar', f'No se pudieron verificar las fechas de los decretos en DIPRES ({type(e).__name__}: {e}); se usaron las fechas de las planillas')]
     dir_min = os.path.join(carpeta, 'MINAGRI'); os.makedirs(dir_min, exist_ok=True)
     oficial = oficial_del_mes(carpeta)
 
@@ -145,6 +154,7 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
         if t.startswith('Leyendo'): avanzar(t.replace(' ...', ''))
         elif t.startswith('Presupuesto vigente'): avanzar(t.replace(' ...', ''))
     base_df, bg, _, ctrl, av = generar(K, carpeta, pvs, corte, None, log=log_motor)
+    av = list(av_dec) + list(av)
 
     avanzar('Redactando el borrador de Ideas Fuerza')
     prev = prev_g = None; fi_prev = 'sin mes anterior (enero)'; corte_prev = None; cprev = None
@@ -192,7 +202,7 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
     avanzar('Guardando el archivo')
     salida = salida_del_mes(carpeta, anio, m)
     info = pd.DataFrame([('Mes', nombre), ('Generado', datetime.datetime.now().strftime('%d-%m-%Y %H:%M')), ('Versión del agente', VERSION),
-                         ('Carpeta de informes', carpeta), ('Fecha de corte de decretos', f'{corte:%d-%m-%Y} ({origen_corte})'), ('Ideas Fuerza', fi),
+                         ('Carpeta de informes', carpeta), ('Fecha de corte de decretos', f'{corte:%d-%m-%Y} ({origen_corte})'), ('Fecha de aplicación de decretos', crit + (' (verificada en DIPRES)' if crit != 'Planilla' else '')), ('Ideas Fuerza', fi),
                          ('Filas Base Consolidada', len(base_df)), ('Filas Base Glosas', len(bg))], columns=['Dato', 'Valor'])
     avdf = pd.DataFrame(av or [('OK', 'Sin observaciones')], columns=['Tipo', 'Aviso'])
     escribir_salida(salida, base_df, bg, ideas, respaldo, ideas_of, info, ctrl, avdf, val, det)

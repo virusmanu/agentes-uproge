@@ -163,6 +163,7 @@ def planillas_pv(carpeta):
         pv[s]=c[0]
     return pv
 
+FECHAS_DECRETO={}   # {'1289': Timestamp} fechas de decretos a aplicar (las fija proceso.py tras verificar en DIPRES)
 NIVELES_COD=(('Subtítulo','Nombre Subtítulo',2),('Ítem','Nombre Ítem',4),('Asignación','Nombre Asignación',7),('Subasignación','Nombre Subasignación',10))
 
 def base_presupuesto(path):
@@ -171,6 +172,12 @@ def base_presupuesto(path):
     La columna _completado marca esas filas para avisar."""
     b=pd.read_excel(path,sheet_name='Base Presupuesto',dtype={'Subtítulo':str,'Ítem':str,'Asignación':str,'Subasignación':str})
     b['_completado']=False
+    if FECHAS_DECRETO and 'Numero Documento' in b and 'Fecha Documento' in b:
+        # fecha a aplicar según el criterio (toma de razón en DIPRES); se conserva la de la planilla. Solo en memoria.
+        b['Fecha Planilla']=b['Fecha Documento']
+        n=pd.to_numeric(b['Numero Documento'],errors='coerce').map(lambda x:str(int(x)) if pd.notna(x) else '')
+        f=n.map(FECHAS_DECRETO); ok=(b.Documento=='Decreto')&f.notna()
+        b.loc[ok,'Fecha Documento']=pd.to_datetime(f[ok])
     for cod,nom,largo in NIVELES_COD:
         if cod not in b or nom not in b: continue
         vacio=b[cod].isna()|(b[cod].astype(str).str.strip().isin(['','nan','None']))
@@ -216,7 +223,8 @@ def glosas_presupuesto(path,s,corte,R,av):
             lab=str(gs.cell(h+1,c).value or ''); v=gs.cell(row,c).value or 0
             if not v: continue
             mm=re.search(r'(\d{2})-(\d{2})-(\d{4})',lab); num=re.search(r'N°\s*(\d+)',lab)
-            if mm: fe=pd.Timestamp(f'{mm.group(3)}-{mm.group(2)}-{mm.group(1)}')
+            if num and num.group(1) in FECHAS_DECRETO: fe=FECHAS_DECRETO[num.group(1)]
+            elif mm: fe=pd.Timestamp(f'{mm.group(3)}-{mm.group(2)}-{mm.group(1)}')
             elif num and num.group(1) in R.index: fe=R[num.group(1)]
             else: av.append(('Revisar',f'{s}: el decreto "{lab.strip()}" de la hoja Glosas no tiene fecha (ni en el encabezado ni en Base Presupuesto); se incluyó en el vigente de glosas')); fe=corte
             if fe<=corte: vig+=v

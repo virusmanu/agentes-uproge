@@ -159,7 +159,7 @@ class App(tk.Tk):
         t3 = self._tarjeta(izq, 3, 'Generar el consolidado')
         self.btn_generar = ttk.Button(t3, text='Generar consolidado', style='Primario.TButton', command=self.generar)
         self.btn_generar.pack(fill='x')
-        self.prog = ttk.Progressbar(t3, mode='determinate', maximum=23, style='Horizontal.TProgressbar'); self.prog.pack(fill='x', pady=(10, 4))
+        self.prog = ttk.Progressbar(t3, mode='determinate', maximum=24, style='Horizontal.TProgressbar'); self.prog.pack(fill='x', pady=(10, 4))
         self.lbl_prog = ttk.Label(t3, text='Listo para comenzar.', style='Suave.TLabel', wraplength=380); self.lbl_prog.pack(anchor='w')
 
         # Resultados
@@ -199,8 +199,13 @@ class App(tk.Tk):
         self.tv_rev.bind('<Double-1>', lambda e: self.ver_alerta())
         br = tk.Frame(pr, bg=BLANCO); br.pack(fill='x', pady=(6, 0))
         self.btn_aceptar = ttk.Button(br, text='Aceptar…', style='Secundario.TButton', command=self.aceptar_alertas); self.btn_aceptar.pack(side='left')
-        self.btn_quitar = ttk.Button(br, text='Quitar', style='Secundario.TButton', command=self.quitar_aceptacion); self.btn_quitar.pack(side='left', padx=6)
+        self.btn_quitar = ttk.Button(br, text='Quitar', width=7, style='Secundario.TButton', command=self.quitar_aceptacion); self.btn_quitar.pack(side='left', padx=6)
         self.btn_rev_xls = ttk.Button(br, text='Abrir revisión', style='Secundario.TButton', command=lambda: self.resultado and abrir(self.resultado['ruta_revision'])); self.btn_rev_xls.pack(side='left')
+        def abrir_registro():
+            import decretos as DC
+            if os.path.exists(DC.REGISTRO): abrir(DC.REGISTRO)
+            else: messagebox.showinfo('Registro de decretos', 'El registro se crea la primera vez que se genera un mes (al verificar las fechas en DIPRES).')
+        ttk.Button(br, text='Decretos', width=9, style='Secundario.TButton', command=abrir_registro).pack(side='left', padx=6)
         self.btn_hoja = ttk.Button(br, text='Hoja de control', style='Secundario.TButton', command=self.exportar_hoja); self.btn_hoja.pack(side='right')
         for w in (self.btn_aceptar, self.btn_quitar, self.btn_rev_xls, self.btn_hoja): w.state(['disabled'])
         # pestaña validación
@@ -554,7 +559,8 @@ class Configuracion(tk.Toplevel):
               ('carpeta_presupuesto_vigente', 'Carpeta de Presupuesto Vigente', 'Contiene las 6 planillas "0X SERVICIO Presupuesto Vigente 2026.xlsx"', 'dir'),
               ('carpeta_informes_anio_anterior', 'Carpeta de informes del año anterior (opcional)', 'Para comparar las Ideas Fuerza con igual mes del año anterior', 'dir'),
               ('catalogo', 'Catálogo Maestro', 'Archivo "Catálogo Maestro Ejecución MINAGRI 2026.xlsx"', 'file'),
-              ('carpeta_actualizaciones', 'Carpeta compartida de actualizaciones (opcional)', 'Donde se dejan los .zip de versiones nuevas; la ventana avisa al abrirse si hay una', 'dir'))
+              ('carpeta_actualizaciones', 'Carpeta compartida de actualizaciones (opcional)', 'Donde se dejan los .zip de versiones nuevas; la ventana avisa al abrirse si hay una', 'dir'),
+              ('carpeta_decretos', 'Carpeta con PDF de decretos (opcional)', 'Se busca aquí el decreto antes de descargarlo de DIPRES (nombre del PDF con el N° del decreto)', 'dir'))
 
     def __init__(self, app):
         super().__init__(app); self.app = app
