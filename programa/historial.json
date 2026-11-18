@@ -1,5 +1,11 @@
 [
  {
+  "version": "1.6",
+  "fecha": "18-11-2026",
+  "tipo": "Mayor",
+  "resumen": "Actualización mayor que reúne las betas 1.5j a 1.5g y agrega: revisión previa de los insumos antes de generar (los errores impiden generar); una ventana para agregar al Catálogo Maestro lo que el mes trae y el catálogo no tiene, con respaldo y opción de catálogo compartido; control de decretos de la carpeta de PDF que faltan en las planillas; Ideas Fuerza y resumen ejecutivo en Word con formato de minuta; bitácora de generaciones con huella digital de los insumos; asistente de cambio de año; aviso cuando llegan los 12 informes; y pruebas automáticas que vuelven a generar septiembre y octubre antes de publicar. Las cifras del consolidado no cambian."
+ },
+ {
   "version": "1.5g",
   "fecha": "18-11-2026",
   "tipo": "Beta",

@@ -1,13 +1,15 @@
 {
   "programa": "Agentes de Apoyo a la Gestión – UPROGE",
-  "version": "1.5g",
+  "version": "1.6",
   "fecha": "18-11-2026",
   "cambios": [
-    "Revisión simplificada: solo incidencias con impacto en el informe (cuadratura, devengo sin vigente, devengo menor que el mes anterior, transferencias intrapartida y decretos que cambian el vigente del mes)",
-    "Se eliminan los controles de devengo cerca o sobre el vigente, glosas, salto del mes y sin ejecución; la hoja Umbrales de Reglas de revisión.xlsx queda con tres umbrales",
-    "Versión de prueba para macOS con Apple Silicon (botones de la bienvenida visibles en Mac; el actualizador reconoce los lanzadores .command)",
-    "Actualizador: busca versiones por la API de GitHub (sin el caché de 5 minutos), el aviso al iniciar funciona en macOS y en Mac usa los certificados del sistema",
-    "Catálogo Maestro: las asignaciones \"000\" (ítems no abiertos en asignaciones, p. ej. 2601000 Devoluciones) tienen nombre en la hoja Clasificador; si aparece una nueva, el agente usa el nombre del ítem y avisa"
+    "Revisión previa de los insumos al elegir el mes (faltan o sobran informes, informe de otro mes, archivos que no abren, planillas con fórmulas sin calcular); los errores impiden generar",
+    "Agregar al Catálogo Maestro desde los avisos (programas, regiones, nombres e ingresos), con respaldo; el catálogo puede ser el compartido de la unidad",
+    "Decretos de la carpeta de PDF tomados de razón al corte que faltan en las planillas",
+    "Ideas Fuerza y resumen ejecutivo en Word con formato de minuta",
+    "Bitácora del agente con insumos y huella digital; aviso antes de regenerar un mes con hoja de control",
+    "Asistente de cambio de año, aviso de llegada de informes y pruebas automáticas antes de publicar",
+    "Incluye las betas 1.5j a 1.5g (decretos por toma de razón, revisión simplificada, versión para Mac)"
   ],
   "actualiza_catalogo": true
 }

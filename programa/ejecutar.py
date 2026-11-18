@@ -21,7 +21,11 @@ def main():
     mes = f'{anio}-{m:02d}'
     est = estado_del_mes(cfg, anio, m, a.carpeta)
     print(f'\nMes: {MESES[m-1]} {anio}\nCarpeta de informes: {est["carpeta"]}\nPresupuesto Vigente: {cfg["carpeta_presupuesto_vigente"]}\nCatálogo: {cfg["catalogo"]}')
-    if est['problemas_archivos']: raise ErrorAgente(est['problemas_archivos'][0])
+    if est.get('previa'):
+        print('\nRevisión previa de los insumos:')
+        for n, t in est['previa']: print(f'  {"ERROR" if n == "Error" else "Aviso"}: {t}')
+    err = [t for n, t in est.get('previa', []) if n == 'Error']
+    if est['problemas_archivos'] or err: raise ErrorAgente((est['problemas_archivos'] or err)[0] + '\nCorrija lo indicado y vuelva a ejecutar.')
     # fecha de corte
     if a.corte: corte = leer_fecha(a.corte); origen = 'indicada al ejecutar'
     elif est['corte_catalogo'] is not None: corte = est['corte_catalogo']; origen = 'hoja "Corte decretos" del catálogo'

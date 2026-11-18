@@ -229,6 +229,31 @@ def _control_fechas_dipres(corte, crit):
                          + f'. Con el corte del {c:%d-%m-%Y} el agente ' + ('los dejó' if len(cr) > 1 else 'lo dejó') + ' fuera del vigente del mes, aunque la planilla del servicio ya ' + ('los incluye' if len(cr) > 1 else 'lo incluye')))
     return A
 
+def _control_decretos_faltantes(corte):
+    """Decretos de la carpeta local de decretos (tomados de razón al corte) que no aparecen en las planillas de los
+    servicios que el decreto nombra. Si están, cambian el vigente del mes."""
+    try:
+        import decretos as DC
+        U = DC.ULTIMO or {}; car = U.get('carpeta') or {}; en = U.get('en_planillas') or {}
+    except Exception:
+        return []
+    A = []; c = pd.Timestamp(corte) if corte is not None else None
+    for n, d in sorted(car.items()):
+        fe = d.get('fecha_tr') or d.get('fecha_decreto')
+        if fe is None or (c is not None and fe > c): continue
+        tiene = en.get(n, set()); faltan = sorted(d['servicios'] - tiene) if d['servicios'] else []
+        if not tiene:
+            A.append(_alerta(AMARILLO, 'Decreto no registrado en las planillas', ', '.join(sorted(d['servicios'])) or 'Sin servicio identificado', '',
+                             f'N°{n}', 'Decreto', f'El decreto N°{n} ({d["archivo"]}, ' + ('toma de razón' if d.get('fecha_tr') is not None else 'fecha')
+                             + f' {fe:%d-%m-%Y}) está en la carpeta de decretos y no aparece en ninguna planilla de Presupuesto Vigente'
+                             + (f'; el decreto nombra a: {", ".join(sorted(d["servicios"]))}' if d['servicios'] else '')
+                             + '. Si modifica el presupuesto de un servicio, falta en su planilla y el vigente del mes queda incompleto'))
+        elif faltan:
+            A.append(_alerta(AMARILLO, 'Decreto posiblemente faltante en una planilla', ', '.join(faltan), '', f'N°{n}', 'Decreto',
+                             f'El decreto N°{n} ({d["archivo"]}) nombra a {", ".join(faltan)}, pero solo está registrado en '
+                             f'{", ".join(sorted(tiene))}. Revise si también modifica el presupuesto de ' + ('ese servicio' if len(faltan) == 1 else 'esos servicios')))
+    return A
+
 def controles(base, bg, prev, mes, cuadratura, pvs, U, P, corte=None):
     A = []
     # 1. Cuadratura del devengo: informe bruto = consolidado + excluido por programa
@@ -281,6 +306,8 @@ def controles(base, bg, prev, mes, cuadratura, pvs, U, P, corte=None):
                                  f'El decreto N°{n} está registrado con fechas distintas en las planillas de Presupuesto Vigente ({det}); '
                                  + (f'con el corte del {pd.Timestamp(corte):%d-%m-%Y} quedó incluido en unos servicios y excluido en otros' if corte is not None else
                                     'con la fecha de corte puede quedar incluido en un servicio y excluido en otro')))
+    # 10. Decretos de la carpeta local con toma de razón al corte que faltan en las planillas
+    A.extend(_control_decretos_faltantes(corte))
     # 9. Fechas de las planillas contrastadas con DIPRES (decreto y toma de razón)
     if crit != 'Planilla':
         A.extend(_control_fechas_dipres(corte, crit))

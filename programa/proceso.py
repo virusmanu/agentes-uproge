@@ -18,7 +18,12 @@ VERSION = _version()
 MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG = os.path.join(RAIZ, 'config.ini')
-CATALOGO_POR_DEFECTO = os.path.join(RAIZ, 'Catálogo Maestro Ejecución MINAGRI 2026.xlsx')
+def _catalogo_por_defecto():
+    """El catálogo del año más reciente que esté junto al programa ("Catálogo Maestro Ejecución MINAGRI <año>.xlsx")."""
+    import glob, re
+    c = [f for f in glob.glob(os.path.join(RAIZ, 'Catálogo Maestro Ejecución MINAGRI *.xlsx')) if re.search(r'(\d{4})\.xlsx$', f)]
+    return max(c, key=lambda f: re.search(r'(\d{4})\.xlsx$', f).group(1)) if c else os.path.join(RAIZ, 'Catálogo Maestro Ejecución MINAGRI 2026.xlsx')
+CATALOGO_POR_DEFECTO = _catalogo_por_defecto()
 
 
 # ------------------------------------------------------------------ configuración
@@ -27,7 +32,7 @@ def leer_config():
     if not c.read(CONFIG, encoding='utf-8') or 'RUTAS' not in c:
         raise ErrorAgente(f'No encuentro config.ini en {RAIZ}')
     g = c['RUTAS']
-    cat = g.get('catalogo', '').strip() or CATALOGO_POR_DEFECTO
+    cat = g.get('catalogo', '').strip() or _catalogo_por_defecto()
     if not os.path.isabs(cat): cat = os.path.join(RAIZ, cat)
     return {'carpeta_informes': g.get('carpeta_informes', '').strip(),
             'carpeta_presupuesto_vigente': g.get('carpeta_presupuesto_vigente', '').strip(),
@@ -44,7 +49,7 @@ def guardar_config(cfg):
     for l in lineas:
         k = l.split('=', 1)[0].strip()
         if '=' in l and not l.lstrip().startswith(';') and k in cfg:
-            v = '' if (k == 'catalogo' and os.path.normcase(cfg[k]) == os.path.normcase(CATALOGO_POR_DEFECTO)) else cfg[k]
+            v = '' if (k == 'catalogo' and os.path.normcase(cfg[k]) == os.path.normcase(_catalogo_por_defecto())) else cfg[k]
             out.append(f'{k} = {v}'); vistos.add(k)
         else:
             out.append(l)
@@ -98,6 +103,85 @@ def leer_fecha(t):
         except ValueError: pass
     raise ErrorAgente(f'Fecha no válida: "{t}". Use DD-MM-AAAA, por ejemplo 06-11-2026')
 
+def _abierto_en_excel(ruta):
+    """Excel deja un archivo "~$nombre" junto al libro abierto."""
+    d, b = os.path.split(ruta)
+    return os.path.exists(os.path.join(d, '~$' + b[2:])) or os.path.exists(os.path.join(d, '~$' + b))
+
+def informes_completos(carpeta):
+    """True si en la carpeta del mes están los 12 informes (uno por servicio y tipo). Revisión rápida, sin abrir archivos."""
+    import glob
+    from motor import SERV
+    if not os.path.isdir(carpeta): return False
+    nombres = [os.path.basename(f).lower() for f in glob.glob(os.path.join(carpeta, '*.xls*')) if not os.path.basename(f).startswith('~$')]
+    return all(sum(1 for b in nombres if b.startswith(sv[:2]) and sv.split()[1].lower() in b and t in b) == 1
+               for sv in SERV for t in ('gastos', 'ingresos'))
+
+def revision_previa(cfg, anio, m, carpeta=None):
+    """Revisión de los insumos ANTES de generar. Devuelve [(nivel, texto)] con nivel 'Error' (impide generar) o 'Aviso'."""
+    import glob, re
+    from motor import SERV
+    R = []
+    carpeta = carpeta or carpeta_del_mes(cfg['carpeta_informes'], anio, m)
+    if not os.path.isdir(carpeta):
+        return [('Error', f'No existe la carpeta del mes: {carpeta}')]
+    # 1. informes del mes: uno por servicio y tipo
+    hall = {}
+    for f in sorted(glob.glob(os.path.join(carpeta, '*.xls')) + glob.glob(os.path.join(carpeta, '*.xlsx'))):
+        b = os.path.basename(f)
+        if b.startswith('~$'): continue
+        for sv in SERV:
+            if b.startswith(sv[:2]) and sv.split()[1].lower() in b.lower():
+                for t in ('Gastos', 'Ingresos'):
+                    if t.lower() in b.lower(): hall.setdefault((sv, t), []).append(f)
+    faltan = [f'{sv} {t}' for sv in SERV for t in ('Gastos', 'Ingresos') if (sv, t) not in hall]
+    if faltan: R.append(('Error', f'Faltan {len(faltan)} informe(s): ' + ', '.join(faltan)))
+    for (sv, t), v in hall.items():
+        if len(v) > 1: R.append(('Error', f'{sv} {t}: hay más de un archivo (' + ' / '.join(os.path.basename(x) for x in v) + '); deje solo el del mes'))
+    # 2. cada informe: mes del nombre, fecha del archivo, abierto en Excel, se puede leer
+    inicio = datetime.datetime(anio, m, 1)
+    for (sv, t), v in sorted(hall.items()):
+        if len(v) != 1: continue
+        f = v[0]; b = os.path.basename(f); bl = b.lower()
+        otro = [x for i, x in enumerate(MESES) if i != m - 1 and re.search(rf'\b{x.lower()}\b', bl)]
+        if otro and MESES[m - 1].lower() not in bl:
+            R.append(('Error', f'{b}: el nombre dice {otro[0]} y la carpeta es de {MESES[m - 1]}. ¿Es el informe del mes correcto?'))
+        if datetime.datetime.fromtimestamp(os.path.getmtime(f)) < inicio:
+            R.append(('Aviso', f'{b}: el archivo es del {datetime.datetime.fromtimestamp(os.path.getmtime(f)):%d-%m-%Y}, anterior al mes informado. Revise que sea la descarga del cierre de {MESES[m - 1]}'))
+        if _abierto_en_excel(f):
+            R.append(('Aviso', f'{b} está abierto en Excel; si tiene cambios sin guardar, el agente lee la última versión guardada'))
+        try:
+            if f.lower().endswith('.xlsx'):
+                import openpyxl; openpyxl.load_workbook(f, read_only=True).close()
+            else:
+                import xlrd; xlrd.open_workbook(f, on_demand=True).release_resources()
+        except Exception as e:
+            R.append(('Error', f'{b}: no se puede abrir ({type(e).__name__}). ¿Está dañado o protegido?'))
+    # 3. planillas de Presupuesto Vigente
+    try:
+        pvs = planillas_pv(cfg['carpeta_presupuesto_vigente'])
+    except Exception as e:
+        R.append(('Error', str(e))); pvs = {}
+    for sv, p in pvs.items():
+        b = os.path.basename(p)
+        try:
+            x = base_presupuesto(p)
+            n = int(x['_completado'].sum())
+            if n: R.append(('Aviso', f'{b}: {n} fila(s) con fórmulas sin calcular (el agente toma el código desde el nombre). Para dejarla al día: ábrala, presione Ctrl+Alt+F9 y guarde'))
+            sin_f = x[(x.Documento == 'Decreto') & x['Fecha Documento'].isna() & x['Monto M$'].notna()]
+            if len(sin_f): R.append(('Aviso', f'{b}: {len(sin_f)} fila(s) de decreto sin fecha'))
+        except Exception as e:
+            R.append(('Error', f'{b}: no se puede leer la hoja "Base Presupuesto" ({type(e).__name__}: {e})'))
+        if _abierto_en_excel(p):
+            R.append(('Aviso', f'{b} está abierta en Excel; se usa la última versión guardada'))
+    # 4. catálogo y archivo de salida
+    if not os.path.exists(cfg.get('catalogo', '')):
+        R.append(('Error', f'No se encuentra el Catálogo Maestro: {cfg.get("catalogo", "")}'))
+    sal = salida_del_mes(carpeta, anio, m)
+    if os.path.exists(sal) and _abierto_en_excel(sal):
+        R.append(('Error', f'{os.path.basename(sal)} está abierto en Excel: ciérrelo para poder reemplazarlo'))
+    return R
+
 def estado_del_mes(cfg, anio, m, carpeta=None):
     """Revisión previa (rápida) para mostrar antes de generar: archivos, consolidado oficial y fecha de corte."""
     carpeta = carpeta or carpeta_del_mes(cfg['carpeta_informes'], anio, m)
@@ -108,7 +192,8 @@ def estado_del_mes(cfg, anio, m, carpeta=None):
     K = Catalogo(cfg['catalogo'])
     mes = f'{anio}-{m:02d}'
     return {'carpeta': carpeta, 'archivos': arch, 'problemas_archivos': falt, 'oficial': oficial_del_mes(carpeta),
-            'corte_catalogo': K.corte.get(mes), 'salida': salida_del_mes(carpeta, anio, m)}
+            'corte_catalogo': K.corte.get(mes), 'salida': salida_del_mes(carpeta, anio, m),
+            'previa': revision_previa(cfg, anio, m, carpeta)}
 
 def sugerir_corte_mes(cfg, oficial):
     return sugerir_corte(planillas_pv(cfg['carpeta_presupuesto_vigente']), oficial)
@@ -133,7 +218,7 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
     log(texto): mensajes de avance. paso(n, total, texto): para barras de progreso."""
     nombre = f'{MESES[m-1]} {anio}'
     carpeta = carpeta or carpeta_del_mes(cfg['carpeta_informes'], anio, m)
-    TOTAL = 24; n = [0]
+    TOTAL = 25; n = [0]
     def avanzar(t):
         n[0] += 1; paso(min(n[0], TOTAL), TOTAL, t); log(t)
     avanzar('Leyendo el Catálogo Maestro y las planillas de Presupuesto Vigente')
@@ -155,6 +240,9 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
         elif t.startswith('Presupuesto vigente'): avanzar(t.replace(' ...', ''))
     base_df, bg, _, ctrl, av = generar(K, carpeta, pvs, corte, None, log=log_motor)
     av = list(av_dec) + list(av)
+    try: av = [('Revisar' if n == 'Error' else 'Info', 'Revisión previa: ' + t) for n, t in revision_previa(cfg, anio, m, carpeta)
+               if 'abierto en Excel' not in t] + av
+    except Exception: pass
 
     avanzar('Redactando el borrador de Ideas Fuerza')
     prev = prev_g = None; fi_prev = 'sin mes anterior (enero)'; corte_prev = None; cprev = None
@@ -216,8 +304,24 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
         import traceback
         log('No se pudo completar la revisión; el consolidado quedó guardado igual:\n' + traceback.format_exc())
         av.append(('Revisar', f'No se pudo completar la revisión ({type(e).__name__}: {e}). El consolidado quedó guardado igual'))
+    res = {'base': base_df, 'prev': prev, 'anual': anual, 'dec': dec, 'version': VERSION, 'revision': rev, 'carpeta': carpeta,
+           'anio': anio, 'mes': m, 'salida': salida, 'corte': corte, 'ideas': ideas}
+    avanzar('Preparando Ideas Fuerza y resumen ejecutivo en Word')
+    docs = {}
+    try:
+        import documentos as DOC
+        docs = {'ideas': DOC.ideas_fuerza(res), 'resumen': DOC.resumen_ejecutivo(res)}
+    except Exception as e:
+        av.append(('Revisar', f'No se pudieron preparar los documentos Word ({type(e).__name__}: {e}); el consolidado quedó guardado igual'))
+    try:   # bitácora de la generación (quién, cuándo, con qué insumos)
+        import bitacora as BT, decretos as DC
+        ins = [('Informe del mes', p) for p in ubicar_archivos(carpeta).values()] + [('Presupuesto Vigente', p) for p in pvs.values()] \
+              + [('Catálogo Maestro', cfg['catalogo']), ('Reglas de revisión', RV.REGLAS), ('Registro de decretos', DC.REGISTRO)]
+        BT.registrar_generacion(cfg['carpeta_informes'], anio, m, res, ins, crit)
+    except Exception as e:
+        av.append(('Info', f'No se pudo anotar la generación en la bitácora ({type(e).__name__}: {e})'))
     paso(TOTAL, TOTAL, 'Listo')
-    return {'revision': rev, 'ruta_revision': RV.ruta_revision(carpeta, anio, m), 'anio': anio, 'mes': m,
+    return {'documentos': docs, 'base': base_df, 'prev': prev, 'anual': anual, 'dec': dec, 'version': VERSION, 'pendientes': [dict(x) for x in PENDIENTES], 'revision': rev, 'ruta_revision': RV.ruta_revision(carpeta, anio, m), 'anio': anio, 'mes': m,
             'salida': salida, 'carpeta': carpeta, 'ctrl': ctrl, 'avisos': av, 'validacion': val, 'detalle': det,
             'ideas': ideas, 'oficial': oficial, 'corte': corte, 'origen_corte': origen_corte, 'nombre': nombre}
 

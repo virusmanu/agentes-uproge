@@ -1,4 +1,4 @@
-AGENTES DE APOYO A LA GESTIÓN – UPROGE · versión 1.5g (beta)
+AGENTES DE APOYO A LA GESTIÓN – UPROGE · versión 1.6
 ====================================================
 Al abrir aparece la ventana de bienvenida; el botón "Ejecución Presupuestaria - Power BI" abre este agente.
 
@@ -11,6 +11,8 @@ Archivos propios del agente (no forman parte del informe de Power BI):
     (hoja Criterios: Toma de razón por defecto) y transferencias intrapartida.
   - "Registro de decretos.xlsx": fechas del decreto y de toma de razón leídas de los PDF de DIPRES
     (se crea solo; la columna amarilla "Fecha TR manual" permite anotar una fecha a mano).
+  - "Bitácora del agente <año>.xlsx" (en la carpeta de informes mensuales): registro de cada generación y de la revisión.
+  - En la carpeta MINAGRI del mes: archivo de revisión, hoja de control, Ideas Fuerza y resumen ejecutivo en Word.
 
 Hay DOS formas de usarlo; ambas hacen exactamente lo mismo:
   - VENTANA (recomendada): 3_ABRIR_AGENTE_VENTANA.bat  o el acceso directo del Escritorio.

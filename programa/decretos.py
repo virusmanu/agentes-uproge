@@ -218,7 +218,12 @@ def verificar(pvs, anio, criterio='Toma de razón', carpeta_local='', log=print,
             av.append(('Info', f'Fechas de decretos ajustadas al criterio "{criterio}" (fecha DIPRES ≠ fecha de la planilla): '
                        + '; '.join(f'N°{n} → {aplicar[str(n)]:%d-%m-%Y} (' + ', '.join(f'{s} {fp:%d-%m-%Y}' for s, fp in i['planillas'].items() if pd.notna(fp)) + ')'
                                    for n, i in cambian)))
-    ULTIMO = {'fechas': info, 'criterio': criterio, 'aplicar': aplicar, 'avisos': av, 'anio': anio}
+    carpeta_info = {}
+    if carpeta_local:
+        try: carpeta_info = revisar_carpeta(carpeta_local, anio)
+        except Exception as e: av.append(('Info', f'No se pudo revisar la carpeta de decretos ({type(e).__name__}: {e})'))
+    ULTIMO = {'fechas': info, 'criterio': criterio, 'aplicar': aplicar, 'avisos': av, 'anio': anio, 'carpeta': carpeta_info,
+              'en_planillas': {n: set(p) for n, p in P.items()}}
     return aplicar, info, av
 
 
@@ -239,3 +244,50 @@ def trazabilidad(corte=None):
                           'Dentro del corte': ('' if c is None or ap is None else 'Sí' if ap <= c else 'No (posterior al corte)')})
     return pd.DataFrame(filas, columns=['N° Decreto', 'Servicio', 'Fecha planilla', 'Fecha decreto (DIPRES)', 'Toma de razón (DIPRES)',
                                         'Fecha aplicada', 'Origen de la fecha aplicada', 'Dentro del corte'])
+
+
+# ------------------------------------------------------------------ decretos de la carpeta local
+SERVICIOS_TEXTO = {'01 SUBSE': ('SUBSECRETARIA DE AGRICULTURA',), '02 ODEPA': ('OFICINA DE ESTUDIOS Y POLITICAS AGRARIAS',),
+                   '03 INDAP': ('INSTITUTO DE DESARROLLO AGROPECUARIO',), '04 SAG': ('SERVICIO AGRICOLA Y GANADERO',),
+                   '05 CONAF': ('CORPORACION NACIONAL FORESTAL',), '06 CNR': ('COMISION NACIONAL DE RIEGO',)}
+CACHE = os.path.join(RAIZ, 'respaldos', 'decretos_leidos.json')
+
+def servicios_del_texto(texto):
+    """Servicios de la Partida 13 que nombra el decreto (por nombre o por capítulo 13 0X)."""
+    t = re.sub(r'\s+', ' ', _plano(texto)); out = set()
+    for s, nombres in SERVICIOS_TEXTO.items():
+        if any(n in t for n in nombres) or re.search(rf'\b130{s[1]}\b', t): out.add(s)
+    return out
+
+def revisar_carpeta(carpeta, anio):
+    """{N°: {'servicios', 'fecha_decreto', 'fecha_tr', 'archivo'}} de los PDF de la carpeta local de decretos del año.
+    Lo leído se guarda en respaldos/decretos_leidos.json (se vuelve a leer solo si el PDF cambia)."""
+    import json
+    if not carpeta or not os.path.isdir(carpeta): return {}
+    try: cache = json.load(open(CACHE, encoding='utf-8'))
+    except Exception: cache = {}
+    out, nuevo = {}, False
+    for f in glob.glob(os.path.join(carpeta, '**', '*.pdf'), recursive=True):
+        nums = [x for x in re.findall(r'(?<!\d)(\d{2,4})(?!\d)', os.path.basename(f)) if int(x) not in (anio - 1, anio, anio + 1)]
+        if not nums: continue
+        m = re.match(r'(\d+)', nums[0])
+        clave = f'{f}|{os.path.getmtime(f)}'
+        if clave not in cache:
+            try:
+                r = leer_pdf(f)
+                cache[clave] = {'n': int(m.group(1)), 'servicios': sorted(servicios_del_texto(r['texto'])),
+                                'decreto': r['fecha_decreto'].strftime('%Y-%m-%d') if r['fecha_decreto'] is not None else None,
+                                'tr': r['fecha_tr'].strftime('%Y-%m-%d') if r['fecha_tr'] is not None else None}
+            except Exception:
+                cache[clave] = {'n': int(m.group(1)), 'servicios': [], 'decreto': None, 'tr': None}
+            nuevo = True
+        c = cache[clave]; fe = c['tr'] or c['decreto']
+        if fe and int(fe[:4]) != anio: continue
+        if not fe and str(anio) not in f: continue
+        out[c['n']] = {'servicios': set(c['servicios']), 'fecha_decreto': pd.Timestamp(c['decreto']) if c['decreto'] else None,
+                       'fecha_tr': pd.Timestamp(c['tr']) if c['tr'] else None, 'archivo': os.path.basename(f)}
+    if nuevo:
+        try:
+            os.makedirs(os.path.dirname(CACHE), exist_ok=True); json.dump(cache, open(CACHE, 'w', encoding='utf-8'), ensure_ascii=False)
+        except Exception: pass
+    return out

@@ -94,6 +94,7 @@ def ejecucion(K,path,s,t,av):
         prog=_col(df,'P.P.',a).map(norm); cat=_col(df,'Catalogo',a).map(norm)
         if t=='Ingresos':
             sin=sorted(set(cat.dropna())-{k[1] for k in K.ing if k[0]==s})
+            for v in sin: _pend('Ingreso',s,t,v)
             if sin: av.append(('Revisar',f'{s} Ingresos: catálogos sin equivalencia en la hoja "Ingresos SIGFIN" del catálogo (quedan sin clasificador): {", ".join(sin)}'))
             cat=cat.map(lambda v: K.ing.get((s,v)))
         num=lambda c: pd.to_numeric(_col(df,c,a),errors='coerce').fillna(0)/1000
@@ -121,15 +122,18 @@ def ejecucion(K,path,s,t,av):
         dist=sorted({f'C.F. {c} {v}: catálogo por código {x[0]}, por nombre {y[0]}' for c,v,x,y in zip(cf,llave,rc,rg) if x and y and x[0]!=y[0]})
         if dist: av.append(('Revisar',f'{s} {t}: la región por código C.F. no coincide con la región por nombre de oficina en la hoja "Regiones" (se usó la del código): {"; ".join(dist)}'))
         nuevos_cf=sorted({f'{c} {v}' for c,v,x in zip(cf,llave,rc) if c and not x})
+        for c,v in sorted({(c,v) for c,v,x in zip(cf,llave,rc) if c and not x}): _pend('Región CF',s,t,c,nota=v)
         if nuevos_cf: av.append(('Revisar',f'{s} {t}: centros financieros sin código C.F. en la hoja "Regiones" (se usó el nombre de oficina): {"; ".join(nuevos_cf)}'))
         rg=[x or y for x,y in zip(rc,rg)]
         if s=='05 CONAF' and any(c=='1701' and x and x[0]!=17 for c,x in zip(cf,rg)):
             av.append(('Revisar','05 CONAF: Oficina Central (C.F. 1701) quedó fuera de Nivel Central (17). Revise la hoja "Regiones" del catálogo: la tabla puede haberse corrido'))
     out['Código']=[r[0] if r else None for r in rg]; out['Región']=[r[1] if r else None for r in rg]
     sinreg=sorted({v for v,r in zip(llave,rg) if r is None and v})
+    for v in sinreg: _pend('Región',s,t,v)
     if sinreg: av.append(('Revisar',f'{s} {t}: unidades sin región en la hoja "Regiones" del catálogo (quedan sin región): {"; ".join(sinreg)}'))
     tr=[K.prog.get((s,v),('NUEVO','')) for v in prog]
     nuevos=sorted({v for v,(x,_) in zip(prog,tr) if x=='NUEVO' and v})
+    for v in nuevos: _pend('Programa',s,t,v)
     if nuevos:
         ok=K.defecto.get((s,t),'Excluir')=='Sumar a P01' and bool(K.p01.get(s))
         tr=[((('Sumar a P01',K.p01[s]) if ok else ('Excluir','')) if x=='NUEVO' else (x,p)) for x,p in tr]
@@ -145,14 +149,17 @@ def ejecucion(K,path,s,t,av):
     # asignación "000" (ítem no abierto en asignaciones): nombre del ítem con el código de 7 dígitos
     sin=out['Nombre Asignación'].isna()&out['Asignación'].astype(str).str.fullmatch(r'\d{4}000')&out['Nombre Ítem'].notna()
     if sin.any():
+        for a,ni in sorted(set(zip(out.loc[sin,'Asignación'],out.loc[sin,'Nombre Ítem']))): _pend('Nombre',s,t,a,nivel='Asignación',sugerido=f'{a} {str(ni).split(" ",1)[-1]}')
         out.loc[sin,'Nombre Asignación']=[f'{a} {str(ni).split(" ",1)[-1]}' for a,ni in zip(out.loc[sin,'Asignación'],out.loc[sin,'Nombre Ítem'])]
         av.append(('Info',f'{s} {t}: asignaciones "000" sin nombre en la hoja "Clasificador" del catálogo; se usó el nombre del ítem: {", ".join(sorted(out.loc[sin,"Asignación"].unique()))}. Conviene agregarlas al catálogo'))
     for n in ('Subtítulo','Ítem'):
         f=sorted(out.loc[out['Nombre '+n].isna(),n].dropna().unique())
+        for c in f: _pend('Nombre',s,t,c,nivel=n,sugerido='')
         if f: av.append(('Revisar',f'{s} {t}: códigos de {n} sin nombre en la hoja "Clasificador": {", ".join(f)}'))
     return out
 
 def glosas_ejecucion(K,d):
+    if d.empty: return d.assign(Glosa=None,**{'Código Glosa':None})   # todo el informe quedó excluido por programa
     s=d.Servicio.iat[0]
     g=[K.glo.get((s,sa)) or K.glo.get((s,a)) for sa,a in zip(d['Subasignación'],d['Asignación'])]
     if s=='04 SAG': g=[K.glo_ue.get((s,u)) or x for x,u in zip(g,d['_ue'])]   # U.E. 1001/1002/2001/2002: toda la U.E. va a su glosa, incluida su deuda flotante (criterio de agosto y octubre)
@@ -254,6 +261,13 @@ def sugerir_corte(pvs,oficial):
     return desde,hasta,mejor
 
 # ------------------------------------------------------------------ orquestación
+def _pend(tipo,s,t,valor,**kw):
+    for d in PENDIENTES:   # la llave del catálogo no distingue Gastos de Ingresos: un solo pendiente
+        if (d['tipo'],d['servicio'],d['valor'])==(tipo,s,valor):
+            if t not in d['clase']: d['clase']=d['clase']+' e '+t
+            return
+    PENDIENTES.append(dict(tipo=tipo,servicio=s,clase=t,valor=valor,**kw))
+
 def ubicar_archivos(carpeta):
     hall={}
     for f in sorted(glob.glob(os.path.join(carpeta,'*.xls'))+glob.glob(os.path.join(carpeta,'*.xlsx'))):
@@ -272,10 +286,11 @@ def ubicar_archivos(carpeta):
         raise ErrorAgente(' | '.join(msg)+f'\nCarpeta revisada: {carpeta}\nCada archivo debe empezar con el número del servicio y decir Gastos o Ingresos, p.ej. "05 CONAF Gastos a Octubre.xlsx".')
     return {k:v[0] for k,v in hall.items()}
 
+PENDIENTES=[]   # lo que falta en el Catálogo Maestro (programas, regiones, nombres, ingresos), para agregarlo desde la ventana
 CUADRATURA={}   # devengo leído de cada informe bruto, para el control de cuadratura de la revisión
 
 def generar(K,carpeta_mes,pvs,corte,ideas_df,log=print):
-    av=[]; E=[]; GE=[]; P=[]; GP=[]; ctrl=[]; CUADRATURA.clear()
+    av=[]; E=[]; GE=[]; P=[]; GP=[]; ctrl=[]; CUADRATURA.clear(); PENDIENTES.clear()
     arch=ubicar_archivos(carpeta_mes); R=registro_decretos(pvs)
     for s in SERV:
         for t in ('Gastos','Ingresos'):

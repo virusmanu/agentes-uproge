@@ -34,6 +34,9 @@ def millones(m): return '$' + f'{m / 1000:,.0f}'.replace(',', '.')
 def porc(x): return f'{x * 100:,.1f}'.replace('.', ',') + '%'
 
 
+VIGILAR_MS = 3 * 60 * 1000   # cada cuánto se revisa si llegaron los informes del mes
+
+
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -47,6 +50,7 @@ class App(tk.Tk):
             self.destroy(); return
         self.after(100, self.cargar_config)
         self.after(150, self._procesar_cola)
+        self.after(VIGILAR_MS, self.vigilar_informes)
 
     # ---------------------------------------------------------------- apariencia
     def _fuentes(self):
@@ -159,7 +163,7 @@ class App(tk.Tk):
         t3 = self._tarjeta(izq, 3, 'Generar el consolidado')
         self.btn_generar = ttk.Button(t3, text='Generar consolidado', style='Primario.TButton', command=self.generar)
         self.btn_generar.pack(fill='x')
-        self.prog = ttk.Progressbar(t3, mode='determinate', maximum=24, style='Horizontal.TProgressbar'); self.prog.pack(fill='x', pady=(10, 4))
+        self.prog = ttk.Progressbar(t3, mode='determinate', maximum=25, style='Horizontal.TProgressbar'); self.prog.pack(fill='x', pady=(10, 4))
         self.lbl_prog = ttk.Label(t3, text='Listo para comenzar.', style='Suave.TLabel', wraplength=380); self.lbl_prog.pack(anchor='w')
 
         # Resultados
@@ -180,6 +184,10 @@ class App(tk.Tk):
         p2 = ttk.Frame(self.nb, style='Tarjeta.TFrame', padding=(0, 8)); self.nb.add(p2, text='Avisos')
         self.txt_av = tk.Text(p2, wrap='word', font=self.f['normal'], relief='flat', bg=BLANCO, fg=GRIS_TEXTO, padx=6, pady=6, height=10)
         self.txt_av.pack(fill='both', expand=True)
+        bav = tk.Frame(p2, bg=BLANCO); bav.pack(fill='x', pady=(6, 0))
+        self.btn_cat = ttk.Button(bav, text='Agregar al catálogo…', style='Secundario.TButton', command=self.agregar_al_catalogo)
+        self.btn_cat.pack(side='left'); self.btn_cat.state(['disabled'])
+        self.lbl_cat = ttk.Label(bav, text='', style='Suave.TLabel'); self.lbl_cat.pack(side='left', padx=8)
         self.txt_av.tag_configure('rev', foreground='#b02a37', font=self.f['neg']); self.txt_av.tag_configure('info', foreground=GRIS_SUAVE)
         self.txt_av.tag_configure('ok', foreground=VERDE, font=self.f['neg'])
         # pestaña revisión
@@ -222,12 +230,13 @@ class App(tk.Tk):
         self.txt_log.pack(fill='both', expand=True)
         # botones de resultado
         b = tk.Frame(tr, bg=BLANCO); b.pack(fill='x')
-        self.btn_abrir = ttk.Button(b, text='Abrir Excel generado', style='Primario.TButton', command=lambda: self.resultado and abrir(self.resultado['salida']))
+        self.btn_abrir = ttk.Button(b, text='Abrir Excel', style='Primario.TButton', command=lambda: self.resultado and abrir(self.resultado['salida']))
         self.btn_abrir.pack(side='left')
-        self.btn_ideas = ttk.Button(b, text='Ver Ideas Fuerza', style='Secundario.TButton', command=self.ver_ideas); self.btn_ideas.pack(side='left', padx=8)
-        self.btn_carpeta = ttk.Button(b, text='Abrir carpeta del mes', style='Secundario.TButton', command=lambda: self.estado and abrir(os.path.join(self.estado['carpeta'], 'MINAGRI')))
+        self.btn_ideas = ttk.Button(b, text='Ideas Fuerza', style='Secundario.TButton', command=self.ver_ideas); self.btn_ideas.pack(side='left', padx=8)
+        self.btn_resumen = ttk.Button(b, text='Resumen ejecutivo', style='Secundario.TButton', command=self.resumen_ejecutivo); self.btn_resumen.pack(side='left', padx=(0, 8))
+        self.btn_carpeta = ttk.Button(b, text='Carpeta del mes', style='Secundario.TButton', command=lambda: self.estado and abrir(os.path.join(self.estado['carpeta'], 'MINAGRI')))
         self.btn_carpeta.pack(side='left')
-        for w in (self.btn_abrir, self.btn_ideas): w.state(['disabled'])
+        for w in (self.btn_abrir, self.btn_ideas, self.btn_resumen): w.state(['disabled'])
 
     def _pie(self):
         pie = tk.Frame(self, bg=GRIS_FONDO, padx=20, pady=8); pie.pack(fill='x', side='bottom')
@@ -254,6 +263,29 @@ class App(tk.Tk):
         self.cargar_meses()
         if not getattr(self, '_act_revisada', False):
             self._act_revisada = True; self.after(1200, self.revisar_actualizacion)
+
+    def vigilar_informes(self):
+        """Con la ventana abierta, avisa cuando el mes más reciente sin consolidado del agente ya tiene sus 12 informes."""
+        try:
+            if not self.trabajando and getattr(self, 'cfg', None):
+                meses = meses_disponibles(self.cfg['carpeta_informes'])
+                avisados = getattr(self, '_avisados', None)
+                if avisados is None:      # primera vuelta: se recuerda lo que ya estaba completo, sin avisar
+                    self._avisados = {d for a, m, d in meses if informes_completos(os.path.join(self.cfg['carpeta_informes'], d))}
+                else:
+                    for a, m, d in meses:
+                        c = os.path.join(self.cfg['carpeta_informes'], d)
+                        if d in avisados or os.path.exists(salida_del_mes(c, a, m)) or not informes_completos(c): continue
+                        avisados.add(d)
+                        if [x for x in meses if x[2] == d] and messagebox.askyesno('Informes completos',
+                                f'Ya están los 12 informes de {MESES[m-1]} {a}.\n\n¿Seleccionar el mes para generar el consolidado?'):
+                            self.cargar_meses()
+                            i = next((k for k, x in enumerate(self.meses) if x[2] == d), None)
+                            if i is not None: self.cb_mes.current(i); self.revisar_mes()
+                        break
+        except Exception:
+            pass
+        self.after(VIGILAR_MS, self.vigilar_informes)
 
     def ir_al_inicio(self):
         if self.trabajando:
@@ -368,8 +400,22 @@ class App(tk.Tk):
             tk.Label(c, text='✖' if falta else '✔', fg='#b02a37' if falta else VERDE, bg=BLANCO, font=self.f['neg']).pack(side='left')
             tk.Label(c, text=' ' + s.split()[1] + (f' (falta {" e ".join(f.lower() for f in falta)})' if falta else ''),
                      fg='#b02a37' if falta else GRIS_TEXTO, bg=BLANCO, font=self.f['chica']).pack(side='left')
-        if est['problemas_archivos']:
-            self.lbl_oficial.configure(text=est['problemas_archivos'][0])
+        # revisión previa de los insumos (errores impiden generar)
+        prev = est.get('previa', []); errores = [t for n, t in prev if n == 'Error']; avisos = [t for n, t in prev if n != 'Error']
+        fila = len(SERV) // 3 + 2
+        for t in errores[:3]:
+            tk.Label(self.grid_arch, text='✖ ' + t, fg='#b02a37', bg=BLANCO, font=self.f['chica'], wraplength=390, justify='left'
+                     ).grid(row=fila, column=0, columnspan=3, sticky='w', pady=(3, 0)); fila += 1
+        resto = errores[3:] + avisos
+        if resto:
+            l = tk.Label(self.grid_arch, text=('⚠ ' if avisos else '✖ ') + f'{len(resto)} observación(es) de la revisión previa · ver detalle', fg='#8a6d00',
+                         bg=BLANCO, font=self.f['chica'] + ('underline',), cursor='hand2')
+            l.grid(row=fila, column=0, columnspan=3, sticky='w', pady=(3, 0)); fila += 1
+            l.bind('<Button-1>', lambda e, r=resto: messagebox.showinfo('Revisión previa de los insumos', '• ' + '\n\n• '.join(r)))
+        if not prev:
+            tk.Label(self.grid_arch, text='✔ Revisión previa sin observaciones', fg=VERDE, bg=BLANCO, font=self.f['chica']).grid(row=fila, column=0, columnspan=3, sticky='w', pady=(3, 0))
+        if est['problemas_archivos'] or errores:
+            self.lbl_oficial.configure(text='Corrija lo marcado con ✖ y presione "Actualizar".')
         else:
             self.lbl_oficial.configure(text=('Se comparará con el consolidado oficial del mes.' if est['oficial'] else 'Sin consolidado oficial del mes: no habrá comparación.')
                                        + (' Ya existe un archivo AGENTE; se reemplazará.' if os.path.exists(est['salida']) else ''))
@@ -381,7 +427,7 @@ class App(tk.Tk):
             self.var_corte.set(''); self.corte_sugerida = None; self.chk_guardar.state(['!disabled']); self.var_guardar.set(True)
             self.lbl_corte.configure(text='El catálogo no tiene fecha para este mes. ' + ('Use "Sugerir fecha" o escríbala.' if est['oficial'] else 'Escríbala (fecha hasta la cual se consideran los decretos).'))
         self.btn_sugerir.state(['!disabled'] if est['oficial'] else ['disabled'])
-        self.btn_generar.state(['disabled'] if est['problemas_archivos'] else ['!disabled'])
+        self.btn_generar.state(['disabled'] if (est['problemas_archivos'] or errores) else ['!disabled'])
 
     def sugerir(self):
         if not self.estado or not self.estado['oficial']: return
@@ -408,10 +454,18 @@ class App(tk.Tk):
         if self.estado['corte_catalogo'] is not None and corte == self.estado['corte_catalogo']: origen = 'hoja "Corte decretos" del catálogo'
         elif getattr(self, 'corte_sugerida', None) is not None and corte == self.corte_sugerida: origen = 'sugerida a partir del consolidado oficial'
         else: origen = 'ingresada por el usuario'
+        try:
+            import bitacora as BT
+            hc = BT.ultima_hoja_de_control(self.cfg['carpeta_informes'], anio, m)
+        except Exception:
+            hc = None
+        if hc and not messagebox.askyesno('Mes con hoja de control', f'{MESES[m-1]} {anio} ya tiene hoja de control exportada el {hc[0]} por {hc[1]}.\n\n'
+                                          'Si vuelve a generar, las cifras pueden cambiar respecto de lo revisado. ¿Generar igual?'):
+            return
         if os.path.exists(self.estado['salida']) and not messagebox.askyesno('Reemplazar', f'Ya existe:\n{os.path.basename(self.estado["salida"])}\n\n¿Desea reemplazarlo?'):
             return
         self.trabajando = True; self.resultado = None
-        for w in (self.btn_generar, self.btn_abrir, self.btn_ideas, self.cb_mes, self.btn_sugerir): w.state(['disabled'])
+        for w in (self.btn_generar, self.btn_abrir, self.btn_ideas, self.btn_resumen, self.cb_mes, self.btn_sugerir): w.state(['disabled'])
         self.prog['value'] = 0; self.txt_log.delete('1.0', 'end'); self.lbl_res.configure(text='Procesando…')
         guardar = self.var_guardar.get() and self.estado['corte_catalogo'] is None
         threading.Thread(target=self._trabajo, args=(anio, m, corte, origen, guardar), daemon=True).start()
@@ -454,7 +508,7 @@ class App(tk.Tk):
 
     def _mostrar(self, r):
         self._fin_trabajo(); self.resultado = r
-        for w in (self.btn_abrir, self.btn_ideas): w.state(['!disabled'])
+        for w in (self.btn_abrir, self.btn_ideas, self.btn_resumen): w.state(['!disabled'])
         self.prog['value'] = self.prog['maximum']
         self.lbl_prog.configure(text='Listo. Archivo: ' + os.path.basename(r['salida']))
         self.lbl_res.configure(text=f'{r["nombre"]} · corte de decretos {r["corte"]:%d-%m-%Y}')
@@ -472,6 +526,9 @@ class App(tk.Tk):
         for t in rev: self.txt_av.insert('end', '⚠ ' + t + '\n\n', 'rev')
         for t in inf: self.txt_av.insert('end', 'ℹ ' + t + '\n\n', 'info')
         self.nb.tab(1, text=f'Avisos ({len(rev)} para revisar)' if rev else 'Avisos')
+        pend = r.get('pendientes') or []
+        self.btn_cat.state(['!disabled'] if pend else ['disabled'])
+        self.lbl_cat.configure(text=f'{len(pend)} elemento(s) sin registrar en el Catálogo Maestro' if pend else 'El Catálogo Maestro tiene todo lo que trae el mes')
         # validación
         self.tv_val.delete(*self.tv_val.get_children())
         if r['validacion'] is not None:
@@ -531,6 +588,7 @@ class App(tk.Tk):
             messagebox.showwarning('Falta el comentario', 'Para aceptar una alerta hay que escribir un comentario.'); return
         d = self.resultado['revision']
         for i in sel: RV.aceptar(d, i, c)
+        self._bitacora('Alerta aceptada', [d.loc[i].to_dict() for i in sel])
         self._guardar_revision()
 
     def quitar_aceptacion(self):
@@ -538,7 +596,16 @@ class App(tk.Tk):
         if not sel: return
         d = self.resultado['revision']
         for i in sel: RV.quitar(d, i)
+        self._bitacora('Aceptación quitada', [d.loc[i].to_dict() for i in sel])
         self._guardar_revision()
+
+    def _bitacora(self, accion, filas, comentario=''):
+        r = self.resultado
+        try:
+            import bitacora as BT
+            BT.registrar_revision(self.cfg['carpeta_informes'], r['anio'], r['mes'], accion, filas, comentario)
+        except Exception as e:
+            self.txt_log.insert('end', f'No se pudo anotar en la bitácora: {e}\n')
 
     def _guardar_revision(self):
         r = self.resultado
@@ -554,8 +621,22 @@ class App(tk.Tk):
             ruta = RV.hoja_de_control(r['revision'], r['ctrl'], r['carpeta'], r['anio'], r['mes'], r['corte'], r['salida'], VERSION)
         except (ValueError, PermissionError) as e:
             messagebox.showwarning('Hoja de control', str(e)); return
+        self._bitacora('Hoja de control exportada', None, os.path.basename(ruta))
         if messagebox.askyesno('Hoja de control', f'Se guardó {os.path.basename(ruta)} en la carpeta MINAGRI del mes.\n\n¿Abrirla ahora?'):
             abrir(ruta)
+
+    def agregar_al_catalogo(self):
+        if self.resultado and self.resultado.get('pendientes'):
+            VentanaCatalogo(self, self.resultado['pendientes'])
+
+    def resumen_ejecutivo(self):
+        """Se vuelve a preparar al abrirlo, para que incluya las explicaciones de la revisión registradas después de generar."""
+        if not self.resultado: return
+        try:
+            import documentos as DOC
+            abrir(DOC.resumen_ejecutivo(self.resultado))
+        except Exception as e:
+            messagebox.showerror('Resumen ejecutivo', str(e))
 
     def ver_ideas(self):
         if self.resultado: VerIdeas(self, self.resultado)
@@ -565,7 +646,7 @@ class Configuracion(tk.Toplevel):
     CAMPOS = (('carpeta_informes', 'Carpeta de informes mensuales', 'Contiene las carpetas "01 Enero 2026", "02 Febrero 2026", …', 'dir'),
               ('carpeta_presupuesto_vigente', 'Carpeta de Presupuesto Vigente', 'Contiene las 6 planillas "0X SERVICIO Presupuesto Vigente 2026.xlsx"', 'dir'),
               ('carpeta_informes_anio_anterior', 'Carpeta de informes del año anterior (opcional)', 'Para comparar las Ideas Fuerza con igual mes del año anterior', 'dir'),
-              ('catalogo', 'Catálogo Maestro', 'Archivo "Catálogo Maestro Ejecución MINAGRI 2026.xlsx"', 'file'),
+              ('catalogo', 'Catálogo Maestro', 'Puede ser el catálogo compartido de la unidad (SharePoint), para que todos usen el mismo; vacío = el que trae el agente', 'file'),
               ('carpeta_actualizaciones', 'Carpeta compartida de actualizaciones (opcional)', 'Donde se dejan los .zip de versiones nuevas; la ventana avisa al abrirse si hay una', 'dir'),
               ('carpeta_decretos', 'Carpeta con PDF de decretos (opcional)', 'Se busca aquí el decreto antes de descargarlo de DIPRES (nombre del PDF con el N° del decreto)', 'dir'))
 
@@ -587,6 +668,7 @@ class Configuracion(tk.Toplevel):
         b = tk.Frame(self, bg=BLANCO); b.pack(fill='x', pady=(18, 0))
         ttk.Button(b, text='Guardar', style='Primario.TButton', command=self.guardar).pack(side='right')
         ttk.Button(b, text='Cancelar', style='Secundario.TButton', command=self.destroy).pack(side='right', padx=8)
+        ttk.Button(b, text='Preparar año nuevo…', style='Secundario.TButton', command=lambda: (self.destroy(), AnioNuevo(self.app))).pack(side='left')
 
     def examinar(self, v, tipo):
         ini = v.get() if os.path.exists(v.get()) else os.path.expanduser('~')
@@ -595,13 +677,61 @@ class Configuracion(tk.Toplevel):
 
     def guardar(self):
         cfg = {k: v.get().strip() for k, v in self.vars.items()}
-        if not cfg['catalogo']: cfg['catalogo'] = CATALOGO_POR_DEFECTO
+        if not cfg['catalogo']: cfg['catalogo'] = leer_config()['catalogo'] if os.path.exists(CONFIG) else CATALOGO_POR_DEFECTO
         prob = revisar_rutas(cfg)
         if prob and not messagebox.askyesno('Revisar carpetas', '• ' + '\n• '.join(prob) + '\n\n¿Guardar de todos modos?', parent=self): return
         try: guardar_config(cfg)
         except Exception as e:
             messagebox.showerror('No se pudo guardar', str(e), parent=self); return
         self.destroy(); self.app.cargar_config()
+
+
+class AnioNuevo(tk.Toplevel):
+    """Asistente de cambio de año: catálogo del año nuevo, carpetas y año anterior."""
+    def __init__(self, app):
+        super().__init__(app); self.app = app
+        self.title('Preparar año nuevo'); self.configure(bg=BLANCO, padx=22, pady=18); self.transient(app); self.grab_set()
+        cfg = leer_config(); self.cfg = cfg
+        import re
+        m = re.search(r'(\d{4})\.xlsx$', cfg['catalogo']); actual = int(m.group(1)) if m else datetime.date.today().year
+        ttk.Label(self, text='Preparar el agente para el año nuevo', style='Paso.TLabel').pack(anchor='w')
+        ttk.Label(self, text=f'Se crea el Catálogo Maestro del año nuevo a partir del de {actual} (sin fechas de corte), la carpeta de informes de {actual} '
+                             'pasa a ser la del año anterior y se apuntan las carpetas nuevas. No se modifica nada del año que termina.',
+                  style='Suave.TLabel', wraplength=640, justify='left').pack(anchor='w', pady=(0, 10))
+        self.v_anio = tk.StringVar(value=str(actual + 1)); self.v_inf = tk.StringVar(); self.v_pv = tk.StringVar()
+        for t, v, ayuda in (('Año nuevo', self.v_anio, ''), ('Carpeta de informes mensuales del año nuevo', self.v_inf, f'La que tendrá "01 Enero {actual + 1}", "02 Febrero {actual + 1}", …'),
+                            ('Carpeta de Presupuesto Vigente del año nuevo', self.v_pv, 'Puede quedar vacía si aún no están las planillas; se configura después')):
+            ttk.Label(self, text=t, font=app.f['neg']).pack(anchor='w', pady=(8, 0))
+            if ayuda: ttk.Label(self, text=ayuda, style='Suave.TLabel').pack(anchor='w')
+            f = tk.Frame(self, bg=BLANCO); f.pack(fill='x', pady=(4, 0))
+            ttk.Entry(f, textvariable=v, width=80 if v is not self.v_anio else 8).pack(side='left', fill='x', expand=v is not self.v_anio)
+            if v is not self.v_anio:
+                ttk.Button(f, text='Examinar…', style='Secundario.TButton',
+                           command=lambda v=v: self.elegir(v)).pack(side='left', padx=(8, 0))
+        self.txt = tk.Text(self, height=9, wrap='word', relief='flat', bg=GRIS_FONDO, font=app.f['chica']); self.txt.pack(fill='both', expand=True, pady=(12, 0))
+        b = tk.Frame(self, bg=BLANCO); b.pack(fill='x', pady=(12, 0))
+        self.btn = ttk.Button(b, text='Preparar', style='Primario.TButton', command=self.preparar); self.btn.pack(side='right')
+        ttk.Button(b, text='Cerrar', style='Secundario.TButton', command=self.destroy).pack(side='right', padx=8)
+
+    def preparar(self):
+        try: anio = int(self.v_anio.get())
+        except ValueError:
+            messagebox.showwarning('Año', 'Escriba el año nuevo con cuatro dígitos.', parent=self); return
+        inf = self.v_inf.get().strip()
+        if not inf or not os.path.isdir(inf):
+            messagebox.showwarning('Carpeta de informes', 'Elija la carpeta de informes mensuales del año nuevo (debe existir).', parent=self); return
+        if not messagebox.askyesno('Preparar año nuevo', f'Se creará el catálogo {anio} y se cambiarán las carpetas en config.ini (queda un respaldo).\n\n¿Continuar?', parent=self): return
+        try:
+            import anio_nuevo as AN
+            lineas = AN.preparar(self.cfg, anio, inf, self.v_pv.get().strip())
+        except Exception as e:
+            messagebox.showerror('No se pudo preparar', str(e), parent=self); return
+        self.txt.delete('1.0', 'end'); self.txt.insert('1.0', '\n'.join(lineas)); self.btn.state(['disabled'])
+        self.app.cargar_config()
+
+    def elegir(self, v):
+        r = filedialog.askdirectory(parent=self)
+        if r: v.set(os.path.normpath(r))
 
 
 class Actualizaciones(tk.Toplevel):
@@ -759,9 +889,88 @@ class VerIdeas(tk.Toplevel):
         lista.bind('<<ListboxSelect>>', mostrar); lista.selection_set(0); mostrar()
         b = tk.Frame(self, bg=BLANCO, padx=16, pady=12); b.pack(fill='x')
         ttk.Button(b, text='Copiar texto', style='Primario.TButton', command=self.copiar).pack(side='left')
+        ttk.Button(b, text='Abrir en Word', style='Secundario.TButton', command=lambda: self.word(r)).pack(side='left', padx=8)
         ttk.Button(b, text='Cerrar', style='Secundario.TButton', command=self.destroy).pack(side='right')
+
+    def word(self, r):
+        try:
+            import documentos as DOC
+            abrir(DOC.ideas_fuerza(r))
+        except Exception as e:
+            messagebox.showerror('Ideas Fuerza en Word', str(e), parent=self)
 
     def copiar(self):
         self.clipboard_clear(); self.clipboard_append(self.txt.get('1.0', 'end-1c'))
         messagebox.showinfo('Copiado', 'El texto quedó copiado. Péguelo en su minuta o en la hoja Ideas Fuerza.', parent=self)
 
+
+
+class VentanaCatalogo(tk.Toplevel):
+    """Lo que el mes trae y el Catálogo Maestro no tiene: se completa aquí y se agrega al catálogo."""
+    def __init__(self, app, pendientes):
+        super().__init__(app); self.app = app; self.title('Agregar al Catálogo Maestro'); self.configure(bg=BLANCO)
+        self.transient(app); self.geometry('880x520')
+        import editor_catalogo as EC
+        self.EC = EC; self.pend = pendientes
+        try: self.op = EC.opciones(app.cfg['catalogo'])
+        except Exception as e:
+            messagebox.showerror('Catálogo', f'No se pudo leer el Catálogo Maestro: {e}', parent=self); self.destroy(); return
+        ttk.Label(self, text='Complete lo que corresponda y marque lo que quiere agregar. Solo se agregan filas nuevas; '
+                             'el catálogo queda respaldado antes de guardar.', style='Suave.TLabel', wraplength=840).pack(anchor='w', padx=16, pady=(12, 6))
+        marco = tk.Frame(self, bg=BLANCO); marco.pack(fill='both', expand=True, padx=16)
+        cv = tk.Canvas(marco, bg=BLANCO, highlightthickness=0); sb = ttk.Scrollbar(marco, orient='vertical', command=cv.yview)
+        dentro = tk.Frame(cv, bg=BLANCO); dentro.bind('<Configure>', lambda e: cv.configure(scrollregion=cv.bbox('all')))
+        cv.create_window((0, 0), window=dentro, anchor='nw'); cv.configure(yscrollcommand=sb.set)
+        cv.pack(side='left', fill='both', expand=True); sb.pack(side='right', fill='y')
+        self.filas = []
+        for i, p in enumerate(pendientes):
+            f = tk.Frame(dentro, bg=BLANCO); f.pack(fill='x', pady=4)
+            usar = tk.BooleanVar(value=True)
+            ttk.Checkbutton(f, variable=usar).grid(row=0, column=0, rowspan=2, sticky='n')
+            tk.Label(f, text=EC.describir(p), bg=BLANCO, fg=GRIS_TEXTO, font=app.f['chica'], wraplength=780, justify='left').grid(row=0, column=1, columnspan=4, sticky='w')
+            v = {}
+            if p['tipo'] == 'Programa':
+                v['tratamiento'] = tk.StringVar(value='Incluir'); v['programa'] = tk.StringVar()
+                ttk.Label(f, text='Tratamiento', style='Suave.TLabel').grid(row=1, column=1, sticky='w')
+                ttk.Combobox(f, textvariable=v['tratamiento'], values=EC.TRATAMIENTOS, state='readonly', width=12).grid(row=1, column=2, sticky='w', padx=4)
+                ttk.Label(f, text='Programa', style='Suave.TLabel').grid(row=1, column=3, sticky='w')
+                ttk.Combobox(f, textvariable=v['programa'], values=self.op['programas'].get(p['servicio'], []), width=58).grid(row=1, column=4, sticky='w', padx=4)
+            elif p['tipo'] in ('Región', 'Región CF'):
+                v['region'] = tk.StringVar()
+                ttk.Label(f, text='Región', style='Suave.TLabel').grid(row=1, column=1, sticky='w')
+                ttk.Combobox(f, textvariable=v['region'], values=EC.REGIONES, state='readonly', width=24).grid(row=1, column=2, sticky='w', padx=4)
+            elif p['tipo'] == 'Nombre':
+                v['nombre'] = tk.StringVar(value=p.get('sugerido') or f'{p["valor"]} ')
+                ttk.Label(f, text='Nombre', style='Suave.TLabel').grid(row=1, column=1, sticky='w')
+                ttk.Entry(f, textvariable=v['nombre'], width=70).grid(row=1, column=2, columnspan=3, sticky='w', padx=4)
+            elif p['tipo'] == 'Ingreso':
+                v['codigo'] = tk.StringVar()
+                ttk.Label(f, text='Código clasificador', style='Suave.TLabel').grid(row=1, column=1, sticky='w')
+                ttk.Entry(f, textvariable=v['codigo'], width=12).grid(row=1, column=2, sticky='w', padx=4)
+            self.filas.append((p, usar, v))
+        b = tk.Frame(self, bg=BLANCO); b.pack(fill='x', padx=16, pady=12)
+        ttk.Button(b, text='Agregar al catálogo', style='Primario.TButton', command=self.guardar).pack(side='right')
+        ttk.Button(b, text='Cancelar', style='Secundario.TButton', command=self.destroy).pack(side='right', padx=8)
+
+    def guardar(self):
+        filas, faltan = [], []
+        for p, usar, v in self.filas:
+            if not usar.get(): continue
+            val = {k: x.get().strip() for k, x in v.items()}
+            if (p['tipo'] == 'Programa' and val['tratamiento'] != 'Excluir' and not val['programa']) or \
+               (p['tipo'] in ('Región', 'Región CF') and not val['region']) or \
+               (p['tipo'] == 'Nombre' and len(val['nombre']) <= len(str(p['valor'])) + 1) or \
+               (p['tipo'] == 'Ingreso' and not val['codigo'].isdigit()):
+                faltan.append(self.EC.describir(p)); continue
+            filas.append(self.EC.fila_para(p, val, self.op))
+        if faltan:
+            messagebox.showwarning('Faltan datos', 'Complete (o desmarque) estos elementos:\n\n' + '\n'.join(faltan[:10]), parent=self); return
+        if not filas: self.destroy(); return
+        try:
+            resp = self.EC.agregar(self.app.cfg['catalogo'], filas)
+        except Exception as e:
+            messagebox.showerror('No se pudo guardar', str(e), parent=self); return
+        messagebox.showinfo('Catálogo actualizado', f'Se agregaron {len(filas)} fila(s) al Catálogo Maestro.\n'
+                            f'Respaldo del catálogo anterior: respaldos/catálogo/{os.path.basename(resp)}\n\n'
+                            'Vuelva a generar el mes para aplicar los cambios.', parent=self)
+        self.destroy()

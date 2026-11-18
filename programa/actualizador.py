@@ -194,7 +194,7 @@ def respaldar(raiz=RAIZ, motivo='antes de actualizar'):
     v = leer_version(raiz).get('version', '0')
     nombre = f'v{v} {datetime.datetime.now():%Y-%m-%d %H%M%S}'
     dest = os.path.join(raiz, CARPETA_RESPALDOS, nombre)
-    for n in _archivos_del_programa(raiz) + ['config.ini', CATALOGO]:
+    for n in _archivos_del_programa(raiz) + ['config.ini'] + [f for f in os.listdir(raiz) if f.startswith('Catálogo Maestro') and f.endswith('.xlsx')]:
         _copiar(os.path.join(raiz, n), os.path.join(dest, n))
     with open(os.path.join(dest, 'respaldo.txt'), 'w', encoding='utf-8') as f:
         f.write(f'Respaldo de la versión {v}, {motivo}, {datetime.datetime.now():%d-%m-%Y %H:%M}.\n')
