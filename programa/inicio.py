@@ -36,6 +36,17 @@ def version():
         return ''
 
 
+
+def _boton(parent, command=None, **kw):
+    """Botón con color de fondo. En macOS el botón nativo ignora el color (texto blanco sobre blanco),
+    así que se dibuja con una etiqueta que responde al clic."""
+    if sys.platform == 'darwin':
+        for k in ('activebackground', 'activeforeground', 'relief', 'bd'): kw.pop(k, None)
+        b = tk.Label(parent, **kw)
+        if command: b.bind('<Button-1>', lambda e: command())
+        return b
+    return tk.Button(parent, command=command, **kw)
+
 class Bienvenida(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -51,7 +62,7 @@ class Bienvenida(tk.Tk):
         self.aviso = tk.Frame(self, bg='#e6f1f8', padx=16, pady=8)
         self.aviso_txt = tk.Label(self.aviso, font=self.f['chica'], bg='#e6f1f8', fg=AZUL_OSC, justify='left')
         self.aviso_txt.pack(side='left')
-        tk.Button(self.aviso, text='Ver e instalar', font=self.f['chica'] + ('bold',), bg=AZUL, fg=BLANCO, activebackground=AZUL_HOVER,
+        _boton(self.aviso, text='Ver e instalar', font=self.f['chica'] + ('bold',), bg=AZUL, fg=BLANCO, activebackground=AZUL_HOVER,
                   activeforeground=BLANCO, relief='flat', bd=0, padx=12, pady=4, cursor='hand2', command=self.instalar).pack(side='right')
         self._franja = franja; self.nueva = None
 
@@ -74,7 +85,7 @@ class Bienvenida(tk.Tk):
         tk.Frame(cuerpo, height=1, width=420, bg=GRIS_BORDE).pack(pady=24)
 
         for ag in AGENTES:
-            b = tk.Button(cuerpo, text=ag['titulo'], font=self.f['boton'], bg=AZUL, fg=BLANCO, activebackground=AZUL_HOVER,
+            b = _boton(cuerpo, text=ag['titulo'], font=self.f['boton'], bg=AZUL, fg=BLANCO, activebackground=AZUL_HOVER,
                           activeforeground=BLANCO, relief='flat', bd=0, cursor='hand2', padx=28, pady=14, width=34,
                           command=lambda ag=ag: self.elegir(ag))
             b.pack(pady=(0, 4))

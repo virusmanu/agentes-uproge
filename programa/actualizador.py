@@ -166,7 +166,7 @@ def _copiar(origen, destino):
 
 def _archivos_del_programa(raiz):
     fs = [n for n in DEL_PROGRAMA if os.path.exists(os.path.join(raiz, n))]
-    fs += [f for f in os.listdir(raiz) if f.lower().endswith('.bat')]
+    fs += [f for f in os.listdir(raiz) if f.lower().endswith(('.bat', '.command'))]
     return fs
 
 def respaldar(raiz=RAIZ, motivo='antes de actualizar'):
@@ -281,7 +281,7 @@ def instalar(ruta_zip, raiz=RAIZ, log=print):
             _sincronizar_carpeta(os.path.join(tmp, 'recursos'), os.path.join(raiz, 'recursos'), borrar_sobrantes=False)
         for f in os.listdir(tmp):
             p = os.path.join(tmp, f)
-            if os.path.isfile(p) and (f.lower().endswith('.bat') or f in DEL_PROGRAMA):
+            if os.path.isfile(p) and (f.lower().endswith(('.bat', '.command')) or f in DEL_PROGRAMA):
                 shutil.copy2(p, os.path.join(raiz, f))
         hechos.append('Accesos .bat, manual e historial actualizados')
         if os.path.exists(os.path.join(tmp, 'config.ini')):
@@ -309,7 +309,7 @@ def restaurar(carpeta_respaldo, raiz=RAIZ, log=print):
         _sincronizar_carpeta(os.path.join(carpeta_respaldo, 'recursos'), os.path.join(raiz, 'recursos'), borrar_sobrantes=False)
     for f in os.listdir(carpeta_respaldo):
         p = os.path.join(carpeta_respaldo, f)
-        if os.path.isfile(p) and (f.lower().endswith('.bat') or f in DEL_PROGRAMA):
+        if os.path.isfile(p) and (f.lower().endswith(('.bat', '.command')) or f in DEL_PROGRAMA):
             shutil.copy2(p, os.path.join(raiz, f))
     if not os.path.exists(os.path.join(carpeta_respaldo, 'version.json')):
         try: os.remove(os.path.join(raiz, 'version.json'))
