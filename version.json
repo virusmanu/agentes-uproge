@@ -1,16 +1,12 @@
 {
   "programa": "Agentes de Apoyo a la Gestión – UPROGE",
-  "version": "2.0",
+  "version": "2.1",
   "fecha": "18-11-2026",
   "cambios": [
-    "[Crítica] Publicación del consolidado oficial con doble control (botón \"Aprobar y publicar…\"): el consolidado del agente pasa a ser el archivo que lee Power BI solo si lo aprueba una persona distinta de quien lo generó, sin rojos pendientes y sin cambios en sus cifras desde que se generó. Nunca reemplaza un consolidado oficial hecho fuera del agente",
-    "[Crítica] Actualizaciones firmadas digitalmente: desde GitHub solo se instalan versiones con firma válida de UPROGE; un .zip sin firma pide confirmación y uno con firma inválida o archivos alterados se rechaza",
-    "[Crítica] Catálogo protegido: si el Catálogo Maestro cambió fuera del agente, al generar se informa qué cambió (hoja y filas), se respalda la versión y queda en la bitácora",
-    "[Media] Dashboard HTML (botón \"Generar Dashboard\"): las seis páginas del informe Power BI en un solo archivo .html, con los mismos colores, filtros, tablas y gráficos, para abrir en el navegador o enviar por correo",
-    "[Media] Bitácora encadenada: cada fila lleva una huella que depende de la anterior; el agente avisa si alguien la modificó a mano. Nueva hoja Publicaciones",
-    "[Media] Base histórica local con cada corte y sus decretos, que se reconstruye desde las carpetas de los meses",
-    "[Media] Panel de análisis: ficha por asignación con su serie mensual, comparador entre meses y tablero de decretos con la fecha aplicada",
-    "[Baja] Botones nuevos: Generar Dashboard, Aprobar y publicar…, Panel de análisis; mensaje claro si la hoja Regiones del catálogo trae un código de región no numérico"
+    "[Media] Reporte Mensualizado (botón \"Reporte Mensualizado\"): estado de ejecución de Ingresos y Gastos mes a mes, con el formato del reporte Power BI \"Estado de Ejecución Presupuestaria\" (tarjetas, tabla Subtítulo > Ítem > Asignación, devengo mensual por servicio, % de cumplimiento por periodo, devengo y presupuesto por periodo e indicador circular), en un solo archivo HTML que funciona sin internet. El % de cumplimiento se calcula sobre el presupuesto vigente",
+    "[Media] El reporte arma la serie con los consolidados de cada mes ya guardados en las carpetas (oficial publicado o, si no hay, el del agente) y muestra cuál se usó en cada mes; si falta un mes lo avisa antes de generar y lo marca \"s/i\"",
+    "[Baja] Botones de resultado en dos filas (los informes HTML y \"Aprobar y publicar…\" en la segunda) y pie de la ventana más compacto: con la ventana en su tamaño mínimo ya no quedan botones fuera de la vista",
+    "[Baja] Mapa del dashboard sin internet (límites regionales dentro del archivo) y corrección del botón \"Generar Dashboard\", publicadas como ajustes de la 2.0"
   ],
   "actualiza_catalogo": false
 }

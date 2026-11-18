@@ -1,4 +1,4 @@
-AGENTES DE APOYO A LA GESTIÓN – UPROGE · versión 2.0
+AGENTES DE APOYO A LA GESTIÓN – UPROGE · versión 2.1
 ====================================================
 Al abrir aparece la ventana de bienvenida; el botón "Ejecución Presupuestaria - Power BI" abre este agente.
 
@@ -13,7 +13,9 @@ Archivos propios del agente (no forman parte del informe de Power BI):
     (se crea solo; la columna amarilla "Fecha TR manual" permite anotar una fecha a mano).
   - "Bitácora del agente <año>.xlsx" (en la carpeta de informes mensuales): registro de cada generación y de la revisión.
   - En la carpeta MINAGRI del mes: archivo de revisión, archivo de validación, hoja de control, Ideas Fuerza y
-    resumen ejecutivo en Word, y el dashboard HTML del informe (botón "Generar Dashboard").
+    resumen ejecutivo en Word, el dashboard HTML del informe (botón "Generar Dashboard") y el reporte
+    mensualizado HTML de Ingresos y Gastos mes a mes (botón "Reporte Mensualizado"; usa los consolidados de
+    cada mes ya guardados en las carpetas y guarda un resumen de cada uno en respaldos/reporte mensualizado).
   - "Panel de análisis Agentes UPROGE.html" (en la carpeta de informes mensuales): ficha por asignación,
     comparador entre meses y decretos, desde la base histórica local (carpeta respaldos del agente).
 

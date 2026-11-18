@@ -1,12 +1,12 @@
 {
- "version": "2.0",
+ "version": "2.1",
  "archivos": {
   "1_INSTALAR.bat": "1e1511bacfa68a0f997672d6ee8263ad47ea3417e0aa2a3076c9cddd46038d75",
   "2_EJECUTAR_AGENTE.bat": "1f89b64e2188a0c319f854505bc98e0eebd72cb90dac6157afa47f3b3c65f7f4",
   "3_ABRIR_AGENTE_VENTANA.bat": "f56cf3f07a428ac1b96daad8438c46eb902f26b244b83b207e3ef72010ebe5e6",
   "4_CREAR_ACCESO_DIRECTO_EN_ESCRITORIO.bat": "eb57a5b9faf526bf692880b89de98bdf9bb9531b580cf0a6f058e8725ca35324",
   "5_ACTUALIZAR_AGENTE.bat": "3af94e2a66a6ed5e3deca526acbbf331c37e6bd113f56754cfa812b570932d05",
-  "LEEME.txt": "976342f63b0198bbd75cc5527c19add977bd63e6c74148c06f6863177bc49365",
+  "LEEME.txt": "2466ff0e8fd41c073a72c490b0575fd3900081c3032d00bc311032bcdcfe3ce6",
   "config.ini": "db4a48692e61f859f0f71689a3a76620cf99e4eb8972a182475780279f42cd36",
   "programa/_vendor/leaflet/LICENSE.txt": "53e8dc25862014e4324741ca18fbe3611e11d42ef69f59f86ea8c5389647d4cb",
   "programa/_vendor/leaflet/leaflet.css": "a7837102824184820dfa198d1ebcd109ff6d0ff9a2672a074b9a1b4d147d04c6",
@@ -83,11 +83,12 @@
   "programa/editor_catalogo.py": "e2730a60ebd57fb4f1e8dd0ed47e636a5878962e00552697a99ef81afa83eb10",
   "programa/ejecutar.py": "16a92f2c9970a89b5499e0d07bd1fa6b526049dbbe6e3dea3caeb615d0298bf1",
   "programa/firma.py": "5256313c93a3564f7266666411829ddb627c447e9ac42343652bd104b83055f6",
-  "programa/gui_ejecucion.py": "a20a9eecd80efcc47f0f54f16744625520d59eb4f9affd82964954ff2b16c5f1",
+  "programa/gui_ejecucion.py": "11871c5da6459f1d306ecff59e852c0d01e1baaa2e5c0084c03e5ad5e823017e",
   "programa/historia.py": "991fa5e388a86f78e5c5ab7b79d1713e1aaaf3b64f57fc90fdccadb289eb0cc9",
-  "programa/historial.json": "719962e258463ffc39b3809201608e09c71099ab6a9fde0ffc88de3e2210c174",
+  "programa/historial.json": "726eae61476e360ae0cc36bdba2d778798a98e46da34698993bc920e968af381",
   "programa/ideas.py": "c75b917aaa742454d120640e79e9313d230d102bba9182b74fc222a3f71e5457",
   "programa/inicio.py": "18b2150ebb1c9013962009628e16cfd06bb2136e635332c7bd27a508867f4b66",
+  "programa/mensualizado.py": "89997189bb9964996814f21c05384e7a014bec3edd4356e291234ec964675cf2",
   "programa/motor.py": "c9be8ec73d3b4678f4e93a88865bd2fe37bc2071f9b3524baaaca974d37da21d",
   "programa/origen.json": "6c5b17a1f24eb4b0f3dd81f8a117473b96f855e998212c4b11f07b7238d7aba9",
   "programa/pbix.py": "14641a96edbc973aa54f408df15d48ec92e64e9194e34b33e1706de6a130f171",
@@ -96,6 +97,7 @@
   "programa/plantillas/logo_a.png": "ebd3b20a5ae273d42af301d8d10d3b7e82b6eb64eec95b4c562fa79ff61ebe01",
   "programa/plantillas/logo_b.png": "50d3eace3780d70b3753b402f157c1dc762e2e7a28c9774a0513244ef56c5f16",
   "programa/plantillas/mapa_chile.json": "01e4bc331096a5368a9a75af0d77db3dfec454f3b77cc8caaf3ea702fa9e95c0",
+  "programa/plantillas/mensualizado.html": "d9ee5fc7afb0fd374d3f3b640ba328e3b0b5914c05bc18fbd6b33338f39d2c72",
   "programa/plantillas/panel.html": "be15a604fbbebbd28640d62115c5f694863019d87497bb11a6f08da242561771",
   "programa/precision.py": "96c40d56f1924956ac45fd503d6e95437c11220a903ad9f19547413d9d229c5c",
   "programa/proceso.py": "14f6906819ca27ac17afcb95a5222ba085909ce54ca1995306e25cc67ecafd5f",
@@ -108,7 +110,7 @@
   "recursos/agente.png": "67a087401b5280235bb5fd670e5be66e313ba157fc4dfc6d9367980ab45a3d06",
   "recursos/logo.png": "9361547cfb0c6d5b2557de1160730401815240cef5ecc7b8dd627a95844b5fa3",
   "recursos/logo_grande.png": "4841eaf41dd561f01f9a7fa77bcb24e7564193d04464a4db7357a58b6b7dbf79",
-  "version.json": "aac659960c7c22bde20d4ba2209b7571ca6f31b9b4cf094d424cfa8aeb0cceca"
+  "version.json": "c061c310926f15b3b9bde05b4ec59f1f94a80e3340fdbc5575564a9800f28828"
  },
- "firma": "97cc6db444486eefac2aa7cec11c722a79e60c9ae314453ce9912b7fdb20042ec979f7f84559cc60205734c2f6eea0c8a2e7b2ed97d6bf902cc2bd177dabb108"
+ "firma": "def1b728c2cb159aa4e3943cede5769f31900c0a35b53b8c640ff7cb0fc7f01b372b3ed54ed5a942fbdd7892e09a9dbdef55957fbdd8730ab19226af61e3860b"
 }

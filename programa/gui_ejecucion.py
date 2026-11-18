@@ -100,6 +100,8 @@ class App(tk.Tk):
         s.map('Primario.TButton', background=[('disabled', AZUL_CLARO), ('active', '#005a92')])
         s.configure('Secundario.TButton', foreground=AZUL, background=BLANCO, bordercolor=AZUL, borderwidth=1, padding=(12, 6))
         s.map('Secundario.TButton', background=[('active', '#e6f1f8'), ('disabled', BLANCO)], foreground=[('disabled', AZUL_CLARO)])
+        s.configure('Pie.TButton', foreground=AZUL, background=BLANCO, bordercolor=AZUL, borderwidth=1, padding=(8, 5))
+        s.map('Pie.TButton', background=[('active', '#e6f1f8'), ('disabled', BLANCO)], foreground=[('disabled', AZUL_CLARO)])
         s.configure('TCombobox', padding=6); s.configure('TEntry', padding=6)
         s.configure('Treeview', rowheight=26, font=self.f['num'], background=BLANCO, fieldbackground=BLANCO, bordercolor=GRIS_BORDE)
         s.configure('Treeview.Heading', font=self.f['neg'], background=AZUL_OSC, foreground=BLANCO, relief='flat', padding=6)
@@ -270,30 +272,34 @@ class App(tk.Tk):
         p4 = ttk.Frame(self.nb, style='Tarjeta.TFrame', padding=(0, 8)); self.nb.add(p4, text='Registro')
         self.txt_log = tk.Text(p4, wrap='word', font=self.f['chica'], relief='flat', bg=GRIS_FONDO, fg=GRIS_TEXTO, padx=6, pady=6, height=10)
         self.txt_log.pack(fill='both', expand=True)
-        # botones de resultado
+        # botones de resultado (dos filas, para que quepan con la ventana en su tamaño mínimo)
         b = tk.Frame(tr, bg=BLANCO); b.pack(fill='x')
         self.btn_abrir = ttk.Button(b, text='Abrir Excel', style='Primario.TButton', command=lambda: self.resultado and abrir(self.resultado['salida']))
         self.btn_abrir.pack(side='left')
         self.btn_ideas = ttk.Button(b, text='Ideas Fuerza', style='Secundario.TButton', command=self.ver_ideas); self.btn_ideas.pack(side='left', padx=8)
         self.btn_resumen = ttk.Button(b, text='Resumen ejecutivo', style='Secundario.TButton', command=self.resumen_ejecutivo); self.btn_resumen.pack(side='left', padx=(0, 8))
-        self.btn_dash = ttk.Button(b, text='Generar Dashboard', style='Secundario.TButton', command=self.generar_dashboard)
-        self.btn_dash.pack(side='left', padx=(0, 8))
         self.btn_carpeta = ttk.Button(b, text='Carpeta del mes', style='Secundario.TButton', command=lambda: self.estado and abrir(os.path.join(self.estado['carpeta'], 'MINAGRI')))
         self.btn_carpeta.pack(side='left')
-        self.btn_publicar = ttk.Button(b, text='Aprobar y publicar…', style='Secundario.TButton', command=self.aprobar_publicar)
+        b2 = tk.Frame(tr, bg=BLANCO); b2.pack(fill='x', pady=(8, 0))
+        tk.Label(b2, text='Informes HTML:', font=self.f['chica'], bg=BLANCO, fg=GRIS_SUAVE).pack(side='left', padx=(0, 8))
+        self.btn_dash = ttk.Button(b2, text='Generar Dashboard', style='Secundario.TButton', command=self.generar_dashboard)
+        self.btn_dash.pack(side='left', padx=(0, 8))
+        self.btn_mens = ttk.Button(b2, text='Reporte Mensualizado', style='Secundario.TButton', command=self.reporte_mensualizado)
+        self.btn_mens.pack(side='left', padx=(0, 8))
+        self.btn_publicar = ttk.Button(b2, text='Aprobar y publicar…', style='Secundario.TButton', command=self.aprobar_publicar)
         self.btn_publicar.pack(side='right'); self.btn_publicar.state(['disabled'])
-        for w in (self.btn_abrir, self.btn_ideas, self.btn_resumen, self.btn_dash): w.state(['disabled'])
+        for w in (self.btn_abrir, self.btn_ideas, self.btn_resumen, self.btn_dash, self.btn_mens): w.state(['disabled'])
 
     def _pie(self):
         pie = tk.Frame(self, bg=GRIS_FONDO, padx=20, pady=8); pie.pack(fill='x', side='bottom')
-        ttk.Button(pie, text='‹ Inicio', style='Secundario.TButton', width=8, command=self.ir_al_inicio).pack(side='left', padx=(0, 8))
-        ttk.Button(pie, text='Configurar carpetas', style='Secundario.TButton', command=self.configurar).pack(side='left')
-        ttk.Button(pie, text='Abrir Catálogo Maestro', style='Secundario.TButton', command=lambda: abrir(self.cfg['catalogo'])).pack(side='left', padx=8)
+        ttk.Button(pie, text='‹ Inicio', style='Pie.TButton', width=8, command=self.ir_al_inicio).pack(side='left', padx=(0, 8))
+        ttk.Button(pie, text='Configurar carpetas', style='Pie.TButton', command=self.configurar).pack(side='left')
+        ttk.Button(pie, text='Abrir Catálogo Maestro', style='Pie.TButton', command=lambda: abrir(self.cfg['catalogo'])).pack(side='left', padx=6)
         man = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'Manual de usuario.pdf')
-        if os.path.exists(man): ttk.Button(pie, text='Manual de usuario', style='Secundario.TButton', command=lambda: abrir(man)).pack(side='left')
-        ttk.Button(pie, text='Actualizaciones', style='Secundario.TButton', command=lambda: Actualizaciones(self)).pack(side='left', padx=8)
-        ttk.Button(pie, text='Historial de versiones', style='Secundario.TButton', command=lambda: HistorialVersiones(self)).pack(side='left')
-        ttk.Button(pie, text='Panel de análisis', style='Secundario.TButton', command=self.panel_analisis).pack(side='left', padx=8)
+        if os.path.exists(man): ttk.Button(pie, text='Manual de usuario', style='Pie.TButton', command=lambda: abrir(man)).pack(side='left')
+        ttk.Button(pie, text='Actualizaciones', style='Pie.TButton', command=lambda: Actualizaciones(self)).pack(side='left', padx=6)
+        ttk.Button(pie, text='Historial de versiones', style='Pie.TButton', command=lambda: HistorialVersiones(self)).pack(side='left')
+        ttk.Button(pie, text='Panel de análisis', style='Pie.TButton', command=self.panel_analisis).pack(side='left', padx=6)
         tk.Label(pie, text=f'Versión {VERSION if ERROR_INICIO is None else "?"}' + (' beta' if ERROR_INICIO is None and ACT.es_beta(VERSION) else ''),
                  font=self.f['chica'], bg=GRIS_FONDO, fg=GRIS_SUAVE).pack(side='right')
 
@@ -558,7 +564,7 @@ class App(tk.Tk):
 
     def _mostrar(self, r):
         self._fin_trabajo(); self.resultado = r
-        for w in (self.btn_abrir, self.btn_ideas, self.btn_resumen, self.btn_dash, self.btn_publicar): w.state(['!disabled'])
+        for w in (self.btn_abrir, self.btn_ideas, self.btn_resumen, self.btn_dash, self.btn_mens, self.btn_publicar): w.state(['!disabled'])
         self.prog['value'] = self.prog['maximum']
         self.lbl_prog.configure(text='Listo. Archivo: ' + os.path.basename(r['salida']))
         self.lbl_res.configure(text=f'{r["nombre"]} · corte de decretos {r["corte"]:%d-%m-%Y}')
@@ -659,6 +665,47 @@ class App(tk.Tk):
         if messagebox.askyesno('Dashboard listo', f'Se generó el dashboard del mes:\n\n{os.path.basename(ruta)}\n\nEstá en la carpeta MINAGRI del mes. Es un solo archivo: '
                                'se abre con doble clic en el navegador y se puede enviar por correo; funciona sin internet.\n\n¿Abrirlo ahora?', parent=self):
             abrir(ruta)
+
+    # ---------------------------------------------------------------- reporte mensualizado HTML
+    def log(self, texto):
+        self.txt_log.insert('end', f'{datetime.datetime.now():%H:%M:%S}  {texto}\n'); self.txt_log.see('end')
+
+    def reporte_mensualizado(self):
+        """Ejecución mes a mes del año (Ingresos y Gastos), con los consolidados de cada mes ya guardados en las carpetas."""
+        r = self.resultado
+        if not r or not os.path.exists(r['salida']):
+            messagebox.showinfo('Reporte Mensualizado', 'Primero genere el consolidado del mes.', parent=self); return
+        from proceso import _abierto_en_excel
+        if _abierto_en_excel(r['salida']) and not messagebox.askyesno('Reporte Mensualizado', 'El consolidado está abierto en Excel. El reporte usa la última versión guardada. ¿Continuar?', parent=self): return
+        import mensualizado as MN
+        cortes = MN.consolidados(r['carpeta'], r['anio'], r['mes'], actual=r['salida'])
+        faltan = [MESES[m - 1] for m, ruta, f in cortes if f == 'falta']
+        if faltan and not messagebox.askyesno('Reporte Mensualizado', 'No se encontró el consolidado de: ' + ', '.join(faltan) + '.\n\nEsos meses (y el devengo mensual del mes '
+                                              'siguiente) quedarán sin información en el reporte. ¿Generarlo igual?', parent=self): return
+        self.btn_mens.state(['disabled']); self.configure(cursor='watch')
+        self.log(f'Reporte Mensualizado {MESES[r["mes"] - 1]} {r["anio"]}: leyendo los consolidados de cada mes (la primera vez puede tardar un par de minutos)…')
+        res, cola = {}, queue.Queue()   # la ventana solo se toca desde el hilo principal
+        def trabajo():
+            try: res['ruta'], res['cortes'] = MN.generar(r['salida'], r['anio'], r['mes'], r['carpeta'], VERSION, log=cola.put)
+            except Exception as e: res['error'] = e
+            res['fin'] = True
+        def revisar():
+            while not cola.empty(): self.log(cola.get())
+            if res.get('fin'): fin()
+            else: self.after(250, revisar)
+        def fin():
+            self.btn_mens.state(['!disabled']); self.configure(cursor='')
+            if 'error' in res:
+                e = res['error']; self.log(f'  No se pudo generar: {e}')
+                messagebox.showerror('Reporte Mensualizado', f'No se pudo generar el reporte ({type(e).__name__}: {e})', parent=self); return
+            ruta = res['ruta']; self.log(f'  Listo: {os.path.basename(ruta)}')
+            try:
+                import bitacora as BT; BT.registrar_accion(self.cfg['carpeta_informes'], r['anio'], r['mes'], 'Reporte Mensualizado HTML generado', os.path.basename(ruta))
+            except Exception: pass
+            if messagebox.askyesno('Reporte listo', f'Se generó el reporte mensualizado:\n\n{os.path.basename(ruta)}\n\nEstá en la carpeta MINAGRI del mes. Es un solo archivo: '
+                                   'se abre con doble clic en el navegador, se puede enviar por correo y funciona sin internet.\n\n¿Abrirlo ahora?', parent=self):
+                abrir(ruta)
+        threading.Thread(target=trabajo, daemon=True).start(); self.after(250, revisar)
 
     # ---------------------------------------------------------------- validación del corte
     def mostrar_validacion(self):

@@ -1,5 +1,30 @@
 [
  {
+  "version": "2.1",
+  "fecha": "18-11-2026",
+  "tipo": "Menor",
+  "criticidad": "Media",
+  "resumen": "Agrega el Reporte Mensualizado pedido por el Subsecretario para 2027: la ejecución mes a mes de Ingresos y Gastos, con el formato del reporte Power BI \"Estado de Ejecución Presupuestaria\" y el avance medido contra el presupuesto vigente, en HTML. Se genera con un botón después del consolidado, a partir de los consolidados de cada mes. Incluye los ajustes posteriores a la 2.0 (mapa sin internet y botón Generar Dashboard).",
+  "cambios": [
+   {
+    "criticidad": "Media",
+    "texto": "Reporte Mensualizado (botón \"Reporte Mensualizado\"): estado de ejecución de Ingresos y Gastos mes a mes, con el formato del reporte Power BI \"Estado de Ejecución Presupuestaria\" (tarjetas, tabla Subtítulo > Ítem > Asignación, devengo mensual por servicio, % de cumplimiento por periodo, devengo y presupuesto por periodo e indicador circular), en un solo archivo HTML que funciona sin internet. El % de cumplimiento se calcula sobre el presupuesto vigente"
+   },
+   {
+    "criticidad": "Media",
+    "texto": "El reporte arma la serie con los consolidados de cada mes ya guardados en las carpetas (oficial publicado o, si no hay, el del agente) y muestra cuál se usó en cada mes; si falta un mes lo avisa antes de generar y lo marca \"s/i\""
+   },
+   {
+    "criticidad": "Baja",
+    "texto": "Botones de resultado en dos filas (los informes HTML y \"Aprobar y publicar…\" en la segunda) y pie de la ventana más compacto: con la ventana en su tamaño mínimo ya no quedan botones fuera de la vista"
+   },
+   {
+    "criticidad": "Baja",
+    "texto": "Mapa del dashboard sin internet (límites regionales dentro del archivo) y corrección del botón \"Generar Dashboard\", publicadas como ajustes de la 2.0"
+   }
+  ]
+ },
+ {
   "version": "2.0",
   "fecha": "18-11-2026",
   "tipo": "Mayor",
