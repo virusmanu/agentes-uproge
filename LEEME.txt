@@ -26,8 +26,6 @@ Hay DOS formas de usarlo; ambas hacen exactamente lo mismo:
   - CONSOLA:               2_EJECUTAR_AGENTE.bat
 
 Primera vez (una sola vez por computador):
-  Lo más simple: ejecutar el instalador "Instalar Agentes UPROGE 2.0.exe" (trae Python incluido).
-  Sin instalador:
   1. Tener Python 3.10 o superior (python.org, Microsoft Store o Portal de Empresa).
   2. Doble clic en 1_INSTALAR.bat.
   3. Doble clic en 4_CREAR_ACCESO_DIRECTO_EN_ESCRITORIO.bat (opcional, crea el ícono "Agentes UPROGE").

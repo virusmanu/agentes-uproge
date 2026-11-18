@@ -6,7 +6,7 @@
   "3_ABRIR_AGENTE_VENTANA.bat": "f56cf3f07a428ac1b96daad8438c46eb902f26b244b83b207e3ef72010ebe5e6",
   "4_CREAR_ACCESO_DIRECTO_EN_ESCRITORIO.bat": "eb57a5b9faf526bf692880b89de98bdf9bb9531b580cf0a6f058e8725ca35324",
   "5_ACTUALIZAR_AGENTE.bat": "3af94e2a66a6ed5e3deca526acbbf331c37e6bd113f56754cfa812b570932d05",
-  "LEEME.txt": "02ee9588205b051467661bffde93a8cfd11a89e2706b298f7d6c6bdad564dbeb",
+  "LEEME.txt": "976342f63b0198bbd75cc5527c19add977bd63e6c74148c06f6863177bc49365",
   "config.ini": "db4a48692e61f859f0f71689a3a76620cf99e4eb8972a182475780279f42cd36",
   "programa/_vendor/leaflet/LICENSE.txt": "53e8dc25862014e4324741ca18fbe3611e11d42ef69f59f86ea8c5389647d4cb",
   "programa/_vendor/leaflet/leaflet.css": "a7837102824184820dfa198d1ebcd109ff6d0ff9a2672a074b9a1b4d147d04c6",
@@ -85,7 +85,7 @@
   "programa/firma.py": "5256313c93a3564f7266666411829ddb627c447e9ac42343652bd104b83055f6",
   "programa/gui_ejecucion.py": "d8ec57a6d6df5ab2e74ecf269184a3144bd623f39dd77d5af593620d19d0a875",
   "programa/historia.py": "991fa5e388a86f78e5c5ab7b79d1713e1aaaf3b64f57fc90fdccadb289eb0cc9",
-  "programa/historial.json": "0b96a0af05b9786069b883b2a6ce957d154e04b601b82ca0d90a3ea5b1ec12e9",
+  "programa/historial.json": "719962e258463ffc39b3809201608e09c71099ab6a9fde0ffc88de3e2210c174",
   "programa/ideas.py": "c75b917aaa742454d120640e79e9313d230d102bba9182b74fc222a3f71e5457",
   "programa/inicio.py": "18b2150ebb1c9013962009628e16cfd06bb2136e635332c7bd27a508867f4b66",
   "programa/motor.py": "c9be8ec73d3b4678f4e93a88865bd2fe37bc2071f9b3524baaaca974d37da21d",
@@ -107,7 +107,7 @@
   "recursos/agente.png": "67a087401b5280235bb5fd670e5be66e313ba157fc4dfc6d9367980ab45a3d06",
   "recursos/logo.png": "9361547cfb0c6d5b2557de1160730401815240cef5ecc7b8dd627a95844b5fa3",
   "recursos/logo_grande.png": "4841eaf41dd561f01f9a7fa77bcb24e7564193d04464a4db7357a58b6b7dbf79",
-  "version.json": "89d44f91e42ea751b8e37c268085c6718094547451772f9c1137fdee37963d5c"
+  "version.json": "aac659960c7c22bde20d4ba2209b7571ca6f31b9b4cf094d424cfa8aeb0cceca"
  },
- "firma": "a0f6fa50fbf578c241559b9c1088d5062bda8ebcadb0d52e089f33273c4d373deaa8616d3fb020fc94a3b9d6eea7d157bc2590c49b57ee8706ea6e5f1fde6f0d"
+ "firma": "9ca90b64e41f38d889bbf82e5a38dfde3e999155b540d0cbe565a6fd4f212d6ab7b5b710e71a509d39ca18ce2938bb6a68893aa3572dfe37ba2eb9a169da5705"
 }

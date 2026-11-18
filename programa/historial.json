@@ -4,7 +4,7 @@
   "fecha": "18-11-2026",
   "tipo": "Mayor",
   "criticidad": "Crítica",
-  "resumen": "Versión para el informe oficial: el agente publica el consolidado que lee Power BI con doble control, sus actualizaciones vienen firmadas digitalmente y el Catálogo Maestro y la bitácora quedan protegidos. Agrega el dashboard HTML del informe, una base histórica local y el Panel de análisis (ficha por asignación, comparador entre meses y decretos). Incluye todo lo de la 1.7.",
+  "resumen": "Versión para el informe oficial: el agente publica el consolidado que lee Power BI con doble control, sus actualizaciones vienen firmadas digitalmente y el Catálogo Maestro y la bitácora quedan protegidos. Agrega el dashboard HTML del informe, una base histórica local y el Panel de análisis (ficha por asignación, comparador entre meses y decretos). Incluye todo lo de la 1.7. Se instala y actualiza con el paquete .zip, como hasta ahora.",
   "cambios": [
    {
     "criticidad": "Crítica",
@@ -37,10 +37,6 @@
    {
     "criticidad": "Baja",
     "texto": "Botones nuevos: Generar Dashboard, Aprobar y publicar…, Panel de análisis; mensaje claro si la hoja Regiones del catálogo trae un código de región no numérico"
-   },
-   {
-    "criticidad": "Baja",
-    "texto": "Instalador .exe de la versión 2.0"
    }
   ]
  },

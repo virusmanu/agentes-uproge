@@ -10,8 +10,7 @@
     "[Media] Bitácora encadenada: cada fila lleva una huella que depende de la anterior; el agente avisa si alguien la modificó a mano. Nueva hoja Publicaciones",
     "[Media] Base histórica local con cada corte y sus decretos, que se reconstruye desde las carpetas de los meses",
     "[Media] Panel de análisis: ficha por asignación con su serie mensual, comparador entre meses y tablero de decretos con la fecha aplicada",
-    "[Baja] Botones nuevos: Generar Dashboard, Aprobar y publicar…, Panel de análisis; mensaje claro si la hoja Regiones del catálogo trae un código de región no numérico",
-    "[Baja] Instalador .exe de la versión 2.0"
+    "[Baja] Botones nuevos: Generar Dashboard, Aprobar y publicar…, Panel de análisis; mensaje claro si la hoja Regiones del catálogo trae un código de región no numérico"
   ],
   "actualiza_catalogo": false
 }
