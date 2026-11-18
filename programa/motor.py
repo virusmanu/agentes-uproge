@@ -72,6 +72,7 @@ def leer_bruto(path):
     for c in rows[h]:
         c=str(c).strip() if c not in (None,'') else 'None'; seen[c]=seen.get(c,0)+1; cols.append(c if seen[c]==1 else f'{c}.{seen[c]-1}')
     df=pd.DataFrame([list(r)+[None]*(len(cols)-len(r)) for r in rows[h+1:]],columns=cols)
+    df.attrs['fila0']=h+2          # fila de Excel (1 = primera) de la primera fila de datos: para la trazabilidad
     return df, ('SIGFIN' if cols[0]=='A.U.' else 'SIGFE')
 
 def por_prefijo(df,pref,archivo):
@@ -86,6 +87,8 @@ def _col(df,nombre,archivo):
 
 def ejecucion(K,path,s,t,av):
     a=os.path.basename(path); df,fmt=leer_bruto(path)
+    BRUTOS[(s,t)]={'df':df,'formato':fmt,'archivo':a,'ruta':path}   # para el contrato de entrada y el motor sombra
+    fila0=df.attrs.get('fila0',2)
     if fmt=='SIGFIN':
         df=df[pd.to_numeric(_col(df,'A.U.',a),errors='coerce').fillna(0)!=0]
         out=pd.DataFrame({'Servicio':s,'Tipo':t},index=df.index)
@@ -113,6 +116,7 @@ def ejecucion(K,path,s,t,av):
         for m in MONTOS: out[m]=pd.to_numeric(_col(df,m,a),errors='coerce').fillna(0)/1000
         out['_ue']=None
         cf=None
+    out['_archivo']=a; out['_fila']=out.index+fila0
     rg=[K.reg.get((s,v)) for v in llave]
     if cf is not None and s=='05 CONAF' and not any(k[0]==s and str(k[1]).isdigit() for k in K.reg):
         av.append(('Revisar','05 CONAF: el Catálogo Maestro no trae las regiones por código C.F. (versión 1.4). Instale el catálogo actualizado: '
@@ -140,18 +144,18 @@ def ejecucion(K,path,s,t,av):
         av.append(('Revisar',f'{s} {t}: programas que no están en la hoja "Programas" del catálogo; se aplicó el tratamiento por defecto ({"sumados a P01" if ok else "excluidos"}). Agréguelos al catálogo: {"; ".join(nuevos)}'))
     out['Programa']=[p if x in ('Incluir','Sumar a P01') and p else None for x,p in tr]
     exc=out[out.Programa.isna()]
-    CUADRATURA[(s,t)]={'Devengo informe':float(out['Monto Devengo'].sum()),'Devengo excluido por programa':float(exc['Monto Devengo'].sum())}
+    CUADRATURA[(s,t)]={'Devengo informe':float(out['Monto Devengo'].sum()),'Devengo excluido por programa':float(exc['Monto Devengo'].sum()),
+                       **{f'{m} informe':float(out[m].sum()) for m in MONTOS},**{f'{m} excluido':float(exc[m].sum()) for m in MONTOS}}
     if len(exc): av.append(('Info',f'{s} {t}: {len(exc)} filas excluidas por programa (Devengo {exc["Monto Devengo"].sum():,.0f}; Requerimiento {exc["Monto Requerimiento"].sum():,.0f} miles de $)'.replace(',','.')))
     out=out[out.Programa.notna()].copy(); cat=cat.loc[out.index]
     out['Subtítulo']=cat.str[:2]; out['Ítem']=cat.str[:4]; out['Asignación']=cat.str[:7]; out['Subasignación']=cat.str[:10]
     for n,c in [('Subtítulo','Nombre Subtítulo'),('Ítem','Nombre Ítem'),('Asignación','Nombre Asignación'),('Subasignación','Nombre Subasignación')]:
         out[c]=[K.nombre(s,n,v) for v in out[n]]
-    # asignación "000" (ítem no abierto en asignaciones): nombre del ítem con el código de 7 dígitos
-    sin=out['Nombre Asignación'].isna()&out['Asignación'].astype(str).str.fullmatch(r'\d{4}000')&out['Nombre Ítem'].notna()
-    if sin.any():
-        for a,ni in sorted(set(zip(out.loc[sin,'Asignación'],out.loc[sin,'Nombre Ítem']))): _pend('Nombre',s,t,a,nivel='Asignación',sugerido=f'{a} {str(ni).split(" ",1)[-1]}')
-        out.loc[sin,'Nombre Asignación']=[f'{a} {str(ni).split(" ",1)[-1]}' for a,ni in zip(out.loc[sin,'Asignación'],out.loc[sin,'Nombre Ítem'])]
-        av.append(('Info',f'{s} {t}: asignaciones "000" sin nombre en la hoja "Clasificador" del catálogo; se usó el nombre del ítem: {", ".join(sorted(out.loc[sin,"Asignación"].unique()))}. Conviene agregarlas al catálogo'))
+    # asignación "000" (ítem que el servicio no abre en asignaciones): la ejecución queda a nivel de ítem, igual que el
+    # presupuesto vigente y que el consolidado oficial: se conservan los códigos y la asignación/subasignación van sin
+    # nombre. Así Power BI muestra una sola línea por ítem (con vigente y ejecución) y no dos líneas separadas.
+    cero=out['Asignación'].astype(str).str.fullmatch(r'\d{4}000')
+    if cero.any(): out.loc[cero,['Nombre Asignación','Nombre Subasignación']]=None
     for n in ('Subtítulo','Ítem'):
         f=sorted(out.loc[out['Nombre '+n].isna(),n].dropna().unique())
         for c in f: _pend('Nombre',s,t,c,nivel=n,sugerido='')
@@ -212,6 +216,10 @@ def presupuesto(path,s,corte,av):
         av.append(('Info',f'{s}: {len(c)} fila(s) de la planilla de Presupuesto Vigente tenían vacías las columnas de código '
                           f'(fórmulas sin calcular: {docs}). El agente tomó el código desde el nombre. '
                           'Para dejar la planilla al día: ábrala en Excel, presione Ctrl+Alt+F9 y guarde'))
+    inc=(p.Documento!='Decreto')|(p['Fecha Documento']<=corte)
+    t=p.assign(**{'Servicio':s,'Fila planilla':p.index+2,'Incluido en el vigente':inc.map({True:'Sí',False:'No (posterior al corte)'})})
+    TRAZA_PV.append(t[[c for c in ['Servicio','Fila planilla','Documento','Numero Documento','Fecha Planilla','Fecha Documento','Incluido en el vigente','Programa','Tipo',
+                                   'Subtítulo','Ítem','Asignación','Subasignación','Nombre Asignación','Monto M$'] if c in t.columns]])
     fuera=p[(p.Documento=='Decreto')&(p['Fecha Documento']>corte)]
     if len(fuera): av.append(('Info',f'{s}: decretos posteriores al corte, no incluidos: '+', '.join(f'N°{int(n)} ({f:%d-%m-%Y})' for n,f in fuera.groupby('Numero Documento')['Fecha Documento'].min().items())))
     p=p[(p.Documento!='Decreto')|(p['Fecha Documento']<=corte)]
@@ -286,11 +294,14 @@ def ubicar_archivos(carpeta):
         raise ErrorAgente(' | '.join(msg)+f'\nCarpeta revisada: {carpeta}\nCada archivo debe empezar con el número del servicio y decir Gastos o Ingresos, p.ej. "05 CONAF Gastos a Octubre.xlsx".')
     return {k:v[0] for k,v in hall.items()}
 
+BRUTOS={}       # informes brutos leídos, por (servicio, tipo): para el contrato de entrada y el motor sombra
+TRAZA_PV=[]     # filas de las planillas de Presupuesto Vigente, incluidas o no en el vigente del mes
+TRAZA={}        # trazabilidad de la última generación: {'ejecucion': DataFrame}
 PENDIENTES=[]   # lo que falta en el Catálogo Maestro (programas, regiones, nombres, ingresos), para agregarlo desde la ventana
 CUADRATURA={}   # devengo leído de cada informe bruto, para el control de cuadratura de la revisión
 
 def generar(K,carpeta_mes,pvs,corte,ideas_df,log=print):
-    av=[]; E=[]; GE=[]; P=[]; GP=[]; ctrl=[]; CUADRATURA.clear(); PENDIENTES.clear()
+    av=[]; E=[]; GE=[]; P=[]; GP=[]; ctrl=[]; CUADRATURA.clear(); PENDIENTES.clear(); BRUTOS.clear(); TRAZA_PV.clear(); TRAZA.clear()
     arch=ubicar_archivos(carpeta_mes); R=registro_decretos(pvs)
     for s in SERV:
         for t in ('Gastos','Ingresos'):
@@ -299,7 +310,14 @@ def generar(K,carpeta_mes,pvs,corte,ideas_df,log=print):
             if t=='Gastos': GE.append(glosas_ejecucion(K,d))
         log(f'  Presupuesto vigente y glosas {s} ...')
         P.append(presupuesto(pvs[s],s,corte,av)); GP.append(glosas_presupuesto(pvs[s],s,corte,R,av))
-    base=pd.concat(P+E,ignore_index=True); base['Mapa']=base['Código'].map(K.mapa); base=base[COLS]
+    base=pd.concat(P+E,ignore_index=True); base['Mapa']=base['Código'].map(K.mapa)
+    tz=base[['Servicio','Tipo','Programa']].copy(); tz.insert(0,'Fila Base Consolidada',range(2,len(base)+2))
+    tz['Origen']=base['_archivo'].where(base['_archivo'].notna(),'Planilla de Presupuesto Vigente (hoja Base Presupuesto)')
+    tz['Fila de origen']=base['_fila'].astype('Int64')
+    tz['Código clasificador']=base['Subasignación'].fillna(base['Asignación']).fillna(base['Ítem']).fillna(base['Subtítulo'])
+    for m in PPTO+MONTOS: tz[m]=base[m]
+    TRAZA['ejecucion']=tz
+    base=base[COLS]
     for c in ('Subtítulo','Ítem','Asignación','Subasignación'): base[c]=pd.to_numeric(base[c],errors='coerce').astype('Int64')
     bg=pd.concat(GP+[g[['Servicio','Programa','Código Glosa','Glosa']+MONTOS] for g in GE],ignore_index=True)[COLS_GLOSAS]
     ctrl=base.groupby(['Servicio','Tipo'])[PPTO+MONTOS].sum().reset_index()

@@ -166,7 +166,7 @@ def _niveles(df):
                                                 d['Nombre Subtítulo'], d['Nombre Ítem'], d['Nombre Asignación']):
         if (s, p, st) in a_nivel_subt or pd.isna(it):
             cod.append(st); nom.append(nst)
-        elif (s, p, it) in a_nivel_item or pd.isna(asg):
+        elif (s, p, it) in a_nivel_item or pd.isna(asg) or asg % 1000 == 0:   # "000": ítem no abierto en asignaciones
             cod.append(it); nom.append(nit)
         else:
             cod.append(asg); nom.append(nas)
@@ -254,8 +254,8 @@ def _control_decretos_faltantes(corte):
                              f'{", ".join(sorted(tiene))}. Revise si también modifica el presupuesto de ' + ('ese servicio' if len(faltan) == 1 else 'esos servicios')))
     return A
 
-def controles(base, bg, prev, mes, cuadratura, pvs, U, P, corte=None):
-    A = []
+def controles(base, bg, prev, mes, cuadratura, pvs, U, P, corte=None, extra=None):
+    A = list(extra or [])   # hallazgos en rojo de la validación del corte (precision.py)
     # 1. Cuadratura del devengo: informe bruto = consolidado + excluido por programa
 
     cons = base.groupby(['Servicio', 'Tipo'])['Monto Devengo'].sum()
@@ -343,10 +343,10 @@ def _leer(ruta):
     except Exception:
         return None
 
-def revisar(base, bg, prev, anio, mes, carpeta_mes, carpeta_mes_anterior, cuadratura, pvs, corte):
+def revisar(base, bg, prev, anio, mes, carpeta_mes, carpeta_mes_anterior, cuadratura, pvs, corte, extra=None):
     """Corre los controles, recupera comentarios de esta revisión y aceptaciones del mes anterior, y guarda el archivo."""
     U, P = leer_reglas()
-    df = controles(base, bg, prev, mes, cuadratura, pvs, U, P, corte)
+    df = controles(base, bg, prev, mes, cuadratura, pvs, U, P, corte, extra)
     ant = _leer(ruta_revision(carpeta_mes, anio, mes))                 # misma revisión, generada antes
     if ant is not None and len(ant):
         k = {r.Clave: r for r in ant.itertuples() if str(r.Estado).startswith('Aceptada')}

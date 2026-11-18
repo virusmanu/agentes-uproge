@@ -228,7 +228,7 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
     log(texto): mensajes de avance. paso(n, total, texto): para barras de progreso."""
     nombre = f'{MESES[m-1]} {anio}'
     carpeta = carpeta or carpeta_del_mes(cfg['carpeta_informes'], anio, m)
-    TOTAL = 25; n = [0]
+    TOTAL = 26; n = [0]
     def avanzar(t):
         n[0] += 1; paso(min(n[0], TOTAL), TOTAL, t); log(t)
     avanzar('Leyendo el Catálogo Maestro y las planillas de Presupuesto Vigente')
@@ -255,7 +255,7 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
     except Exception: pass
 
     avanzar('Redactando el borrador de Ideas Fuerza')
-    prev = prev_g = None; fi_prev = 'sin mes anterior (enero)'; corte_prev = None; cprev = None
+    prev = prev_g = None; fi_prev = 'sin mes anterior (enero)'; corte_prev = None; cprev = None; pprev = None
     if m > 1:
         cprev = carpeta_del_mes_o_none(cfg['carpeta_informes'], anio, m - 1)
         pprev = IF.consolidado_de(cprev) if cprev else None
@@ -297,17 +297,40 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
     if oficial:
         avanzar('Comparando con el consolidado oficial del mes')
         val, det = validar(base_df, bg, oficial)
-    avanzar('Guardando el archivo')
+    # validación del corte: contratos de entrada y salida, cuadratura punta a punta, motor sombra, coherencia y huella
+    avanzar('Validando el corte (cuadraturas, motor sombra y estructura para Power BI)')
+    import precision as PR
+    V = None; extra = []; ruta_val = None; pbix_h = []
     salida = salida_del_mes(carpeta, anio, m)
+    try:
+        insumos = list(ubicar_archivos(carpeta).values()) + list(pvs.values()) + [cfg['catalogo']]
+        V = PR.validar_corte(K, base_df, bg, ideas, pvs, corte, anio, m, insumos, VERSION, RV.leer_reglas()[1], pprev)
+        for _, x in V['hallazgos'][V['hallazgos'].Criticidad == PR.ROJO].iterrows():
+            det_x = x['Detalle'] + (f". Qué revisar: {x['Qué revisar']}" if x['Qué revisar'] else '')
+            extra.append(RV._alerta(RV.ROJO, f"Validación: {x['Control']}", x['Servicio'] or 'MINAGRI', '', None, x['Grupo'], det_x))
+        pbix_h = revisar_pbix_del_mes(carpeta, anio, m, base_df, bg)
+    except Exception as e:
+        import traceback
+        log('No se pudo completar la validación del corte:\n' + traceback.format_exc())
+        av.append(('Revisar', f'No se pudo completar la validación del corte ({type(e).__name__}: {e})'))
+    sem = PR.semaforo(V['hallazgos']) if V is not None else None
+    avanzar('Guardando el archivo')
     info = pd.DataFrame([('Mes', nombre), ('Generado', datetime.datetime.now().strftime('%d-%m-%Y %H:%M')), ('Versión del agente', VERSION),
                          ('Carpeta de informes', carpeta), ('Fecha de corte de decretos', f'{corte:%d-%m-%Y} ({origen_corte})'), ('Fecha de aplicación de decretos', crit + (' (verificada en DIPRES)' if crit != 'Planilla' else '')), ('Ideas Fuerza', fi),
-                         ('Filas Base Consolidada', len(base_df)), ('Filas Base Glosas', len(bg))], columns=['Dato', 'Valor'])
+                         ('Filas Base Consolidada', len(base_df)), ('Filas Base Glosas', len(bg))]
+                        + ([('Validación del corte', '; '.join(f'{r.Control}: {r.Estado}' for r in sem.itertuples())), ('Huella del consolidado', V['huella'])] if sem is not None else []),
+                        columns=['Dato', 'Valor'])
     avdf = pd.DataFrame(av or [('OK', 'Sin observaciones')], columns=['Tipo', 'Aviso'])
     escribir_salida(salida, base_df, bg, ideas, respaldo, ideas_of, info, ctrl, avdf, val, det)
+    if V is not None:
+        try:
+            ruta_val = PR.guardar(V, carpeta, anio, m, corte, VERSION, salida, pbix_h)
+        except Exception as e:
+            av.append(('Revisar', str(e)))
     avanzar('Revisando el consolidado (controles de devengo)')
     rev = None
     try:
-        rev = RV.revisar(base_df, bg, prev, anio, m, carpeta, cprev, CUADRATURA, pvs, corte)
+        rev = RV.revisar(base_df, bg, prev, anio, m, carpeta, cprev, CUADRATURA, pvs, corte, extra)
     except PermissionError as e:
         av.append(('Revisar', str(e)))
     except Exception as e:
@@ -333,7 +356,22 @@ def procesar(cfg, anio, m, corte, origen_corte, carpeta=None, log=print, paso=la
     paso(TOTAL, TOTAL, 'Listo')
     return {'documentos': docs, 'base': base_df, 'prev': prev, 'anual': anual, 'dec': dec, 'version': VERSION, 'pendientes': [dict(x) for x in PENDIENTES], 'revision': rev, 'ruta_revision': RV.ruta_revision(carpeta, anio, m), 'anio': anio, 'mes': m,
             'salida': salida, 'carpeta': carpeta, 'ctrl': ctrl, 'avisos': av, 'validacion': val, 'detalle': det,
-            'ideas': ideas, 'oficial': oficial, 'corte': corte, 'origen_corte': origen_corte, 'nombre': nombre}
+            'ideas': ideas, 'oficial': oficial, 'corte': corte, 'origen_corte': origen_corte, 'nombre': nombre,
+            'validacion_corte': V['hallazgos'] if V is not None else None, 'semaforo': sem, 'ruta_validacion': ruta_val, 'pbix': pbix_h}
+
+def pbix_del_mes(carpeta):
+    """Informes Power BI (.pbix) de la carpeta del mes (o de su carpeta MINAGRI)."""
+    import glob
+    return sorted(f for d in (carpeta, os.path.join(carpeta, 'MINAGRI')) for f in glob.glob(os.path.join(d, '*.pbix')) if not os.path.basename(f).startswith('~$'))
+
+def revisar_pbix_del_mes(carpeta, anio, m, base_df, bg, rutas=None):
+    import pbix as PB
+    out = []; rutas = rutas or pbix_del_mes(carpeta)
+    for r in rutas:
+        for h in PB.revisar(r, anio, m, base_df, bg):
+            if len(rutas) > 1: h['Elemento'] = f'{os.path.basename(r)} · {h["Elemento"]}'
+            out.append(h)
+    return out
 
 def escribir_salida(salida, base_df, bg, ideas, respaldo, ideas_of, info, ctrl, avdf, val, det):
     from openpyxl.styles import Alignment

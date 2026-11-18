@@ -1,14 +1,20 @@
 {
   "programa": "Agentes de Apoyo a la Gestión – UPROGE",
-  "version": "1.6i",
+  "version": "1.7",
   "fecha": "18-11-2026",
   "cambios": [
-    "Historial de versiones: los botones Cerrar y Abrir el historial completo (PDF) no respondían en Mac cuando la ventana se abría con otra ventana activa; ahora siempre responden",
-    "En Mac, si un archivo no se puede abrir se muestra el motivo",
-    "Cualquier error de la ventana se muestra en pantalla y queda en respaldos/errores.log para enviarlo",
-    "Manual de usuario rehecho: guía rápida del mes, explicación paso a paso y 19 imágenes de la versión 1.6, problemas frecuentes y glosario",
-    "Ventana: pestañas con nombres más cortos para que se lean completas; los botones de la ventana de Ideas Fuerza siempre visibles",
-    "Paso 1: si hay un informe duplicado, igual se marcan los servicios que tienen sus informes"
+    "[Crítica] Asignaciones \"000\" (ítems que el servicio no abre en asignaciones): la ejecución vuelve a quedar en la misma línea que su presupuesto vigente, igual que el consolidado oficial. Corrige el detalle por ítem de la tabla de Presupuesto Consolidado en Power BI",
+    "[Crítica] Cuadratura punta a punta al peso: requerimiento, compromiso y devengo contra los informes brutos, y presupuesto ley y vigente contra las planillas, por servicio, tipo, programa y subtítulo",
+    "[Crítica] Motor sombra: un segundo cálculo de la ejecución, directo desde los informes brutos, debe coincidir con el consolidado por programa y subtítulo",
+    "[Crítica] Coherencia entre servicios: alerta en rojo si un decreto queda dentro del vigente en un servicio y fuera en otro, o si una transferencia intrapartida no cuadra con el ingreso del servicio que la recibe",
+    "[Crítica] Contrato de entrada: detecta montos con fórmula sin calcular en las planillas, montos no numéricos o columnas faltantes en los informes, filas repetidas y presupuestos no balanceados (gastos distinto de ingresos)",
+    "[Media] Contrato de salida para Power BI: columnas, tipos, nombres únicos por código, regiones, valores que usan los filtros del informe y comparación con el consolidado del mes anterior",
+    "[Media] Revisión del informe Power BI (.pbix) del mes, solo lectura: títulos con el mes y año, umbrales del semáforo de avance (mes/12) y filtros que no encuentran su valor en los datos",
+    "[Media] Los rojos de la validación pasan a la pestaña Revisión y, como los demás, bloquean la hoja de control hasta corregirlos o explicarlos",
+    "[Media] Trazabilidad fila a fila: cada fila del consolidado indica el informe y la fila de origen; cada fila de las planillas indica la fecha aplicada al decreto y si quedó dentro del vigente",
+    "[Media] Huella del corte: con los mismos insumos, corte y versión, el consolidado debe ser idéntico; si no lo es, se marca en rojo",
+    "[Baja] Nueva pestaña Validación con el semáforo del corte y nuevo archivo \"MINAGRI Validación a <mes> <año>.xlsx\"",
+    "[Baja] Historial de versiones y novedades con la criticidad de cada cambio: rojo (crítica), amarillo (media) y verde (baja)"
   ],
   "actualiza_catalogo": false
 }

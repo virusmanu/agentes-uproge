@@ -17,6 +17,13 @@ except Exception as e:  # p.ej. faltan componentes
 AZUL = '#006fb3'; AZUL_OSC = '#0a132d'; AZUL_CLARO = '#a8b7c7'; ROJO = '#fe6565'; VERDE = '#2d717c'; AMARILLO = '#f2c728'
 GRIS_FONDO = '#f8f9fa'; GRIS_BORDE = '#dee2e6'; GRIS_TEXTO = '#4a4a4a'; GRIS_SUAVE = '#6c757d'; BLANCO = '#ffffff'
 RAIZ_AGENTE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# criticidad de cada cambio de versión: rojo (crítica: cambia o protege las cifras), amarillo (media: controles y
+# procesos), verde (baja: ventana, documentos)
+CRIT_COLOR = {'Crítica': '#b02a37', 'Media': '#b8860b', 'Baja': '#2e7d32'}
+def separar_criticidad(texto):
+    import re
+    m = re.match(r'\[(Crítica|Media|Baja)\]\s*(.*)', str(texto), re.S)
+    return (m.group(1), m.group(2)) if m else (None, str(texto))
 RECURSOS = os.path.join(RAIZ_AGENTE, 'recursos')
 HISTORIAL = os.path.join(RAIZ_AGENTE, 'Historial de versiones.pdf')
 
@@ -181,7 +188,7 @@ class App(tk.Tk):
         t3 = self._tarjeta(izq, 3, 'Generar el consolidado')
         self.btn_generar = ttk.Button(t3, text='Generar consolidado', style='Primario.TButton', command=self.generar)
         self.btn_generar.pack(fill='x')
-        self.prog = ttk.Progressbar(t3, mode='determinate', maximum=25, style='Horizontal.TProgressbar'); self.prog.pack(fill='x', pady=(10, 4))
+        self.prog = ttk.Progressbar(t3, mode='determinate', maximum=26, style='Horizontal.TProgressbar'); self.prog.pack(fill='x', pady=(10, 4))
         self.lbl_prog = ttk.Label(t3, text='Listo para comenzar.', style='Suave.TLabel', wraplength=380); self.lbl_prog.pack(anchor='w')
 
         # Resultados
@@ -234,7 +241,24 @@ class App(tk.Tk):
         ttk.Button(br, text='Decretos', width=9, style='Secundario.TButton', command=abrir_registro).pack(side='left', padx=6)
         self.btn_hoja = ttk.Button(br, text='Hoja de control', style='Secundario.TButton', command=self.exportar_hoja); self.btn_hoja.pack(side='right')
         for w in (self.btn_aceptar, self.btn_quitar, self.btn_rev_xls, self.btn_hoja): w.state(['disabled'])
-        # pestaña validación
+        # pestaña validación del corte (semáforo de precisión + revisión del Power BI)
+        pv = ttk.Frame(self.nb, style='Tarjeta.TFrame', padding=(0, 6)); self.nb.add(pv, text='Validación')
+        self.lbl_vc = ttk.Label(pv, text='Se completa al generar el consolidado.', style='Suave.TLabel', wraplength=560); self.lbl_vc.pack(anchor='w', pady=(0, 4))
+        fv = tk.Frame(pv, bg=BLANCO); fv.pack(fill='both', expand=True)
+        self.tv_vc = ttk.Treeview(fv, columns=('est', 'ctl', 'res'), show='headings', height=6)
+        for c, t, w, st in (('est', '', 24, False), ('ctl', 'Control', 210, False), ('res', 'Resultado', 300, True)):
+            self.tv_vc.heading(c, text=t, anchor='w'); self.tv_vc.column(c, width=w, minwidth=w if not st else 160, anchor='w', stretch=st)
+        sbv = ttk.Scrollbar(fv, orient='vertical', command=self.tv_vc.yview); self.tv_vc.configure(yscrollcommand=sbv.set)
+        sbv.pack(side='right', fill='y'); self.tv_vc.pack(side='left', fill='both', expand=True)
+        for k, c in (('Rojo', '#b02a37'), ('Amarillo', '#8a6d00'), ('Verde', '#2e7d32')): self.tv_vc.tag_configure(k, foreground=c)
+        self.tv_vc.tag_configure('grupo', font=self.f['neg'])
+        self.tv_vc.bind('<Double-1>', lambda e: self.ver_validacion())
+        bv = tk.Frame(pv, bg=BLANCO); bv.pack(fill='x', pady=(6, 0))
+        self.btn_val_xls = ttk.Button(bv, text='Abrir validación', style='Secundario.TButton', command=lambda: self.resultado and self.resultado.get('ruta_validacion') and abrir(self.resultado['ruta_validacion']))
+        self.btn_val_xls.pack(side='left')
+        self.btn_pbix = ttk.Button(bv, text='Revisar informe Power BI…', style='Secundario.TButton', command=self.revisar_pbix); self.btn_pbix.pack(side='left', padx=6)
+        for w in (self.btn_val_xls, self.btn_pbix): w.state(['disabled'])
+        # pestaña comparación con el oficial
         p3 = ttk.Frame(self.nb, style='Tarjeta.TFrame', padding=(0, 8)); self.nb.add(p3, text='Comparación')
         self.tv_val = ttk.Treeview(p3, columns=('niv', 'n', 'd'), show='headings', height=6)
         for c, t, w, a in (('niv', 'Nivel comparado', 300, 'w'), ('n', 'Cifras comparadas', 140, 'e'), ('d', 'Con diferencia', 120, 'e')):
@@ -556,11 +580,59 @@ class App(tk.Tk):
         else:
             self.lbl_val.configure(text='No hay consolidado oficial del mes, por lo que no se hizo la comparación.')
         self.mostrar_revision()
+        self.mostrar_validacion()
         rs = RV.resumen(r['revision']) if r.get('revision') is not None else None
         self.nb.select(2 if rs and rs['rojos_pendientes'] else (1 if rev else 0))
         messagebox.showinfo('Listo', f'Se generó el consolidado de {r["nombre"]}.\n\n{os.path.basename(r["salida"])}\n\n'
                             + (f'Hay {len(rev)} aviso(s) para revisar.' if rev else 'No hay avisos para revisar.')
                             + (f'\n\nRevisión: {rs["rojos_pendientes"]} rojo(s) sin explicar y {rs["amarillos_pendientes"]} amarillo(s).' if rs else ''))
+
+    # ---------------------------------------------------------------- validación del corte
+    def mostrar_validacion(self):
+        r = self.resultado or {}; h = r.get('validacion_corte'); sem = r.get('semaforo')
+        self.tv_vc.delete(*self.tv_vc.get_children()); self._vc = {}
+        if h is None or sem is None:
+            self.lbl_vc.configure(text='No se pudo completar la validación del corte (ver Avisos).'); self.nb.tab(3, text='Validación')
+            return
+        ico = {'Rojo': '●', 'Amarillo': '●', 'Verde': '✔'}
+        for _, g in sem.iterrows():
+            gi = self.tv_vc.insert('', 'end', values=(ico[g.Estado], g.Control, g.Resultado), tags=(g.Estado, 'grupo'), open=g.Estado != 'Verde')
+            for i, x in h[h.Grupo == g.Control].iterrows():
+                if x.Criticidad == 'Verde' and g.Estado != 'Verde': continue
+                iid = self.tv_vc.insert(gi, 'end', values=(ico[x.Criticidad], '   ' + x.Control, x.Detalle), tags=(x.Criticidad,)); self._vc[iid] = x.to_dict()
+        pb = r.get('pbix') or []
+        if pb:
+            peor = 'Rojo' if any(x['Criticidad'] == 'Rojo' for x in pb) else ('Amarillo' if any(x['Criticidad'] == 'Amarillo' and 'manual' not in x['Elemento'] for x in pb) else 'Verde')
+            gi = self.tv_vc.insert('', 'end', values=(ico[peor], 'Informe Power BI (.pbix)', f'{sum(x["Criticidad"] == "Rojo" for x in pb)} rojo(s), {sum(x["Criticidad"] == "Amarillo" and "manual" not in x["Elemento"] for x in pb)} amarillo(s) y un recordatorio'), tags=(peor, 'grupo'), open=True)
+            for x in pb:
+                iid = self.tv_vc.insert(gi, 'end', values=(ico[x['Criticidad']], '   ' + x['Elemento'], x['Detalle']), tags=(x['Criticidad'],))
+                self._vc[iid] = {'Grupo': 'Informe Power BI', 'Control': x['Elemento'], 'Criticidad': x['Criticidad'], 'Servicio': '', 'Detalle': x['Detalle'], 'Qué revisar': ''}
+        nr = int((h.Criticidad == 'Rojo').sum()) + sum(x['Criticidad'] == 'Rojo' for x in pb); na = int((h.Criticidad == 'Amarillo').sum()) + sum(x['Criticidad'] == 'Amarillo' and 'manual' not in x['Elemento'] for x in pb)
+        self.lbl_vc.configure(text=('Todo en verde: el consolidado cuadra con los insumos y respeta la estructura del informe Power BI.' if not nr and not na else
+                                    f'{nr} rojo(s) y {na} amarillo(s). Los rojos del consolidado pasan a la pestaña Revisión y deben corregirse o explicarse; los del informe Power BI se corrigen en Power BI Desktop.')
+                              + (' Revise también el informe Power BI.' if not pb else '') + '  Doble clic para ver el detalle.')
+        self.nb.tab(3, text=f'Validación ({nr} rojos)' if nr else 'Validación ✔')
+        for w in (self.btn_val_xls, self.btn_pbix): w.state(['!disabled'])
+
+    def ver_validacion(self):
+        sel = self.tv_vc.selection()
+        if not sel or sel[0] not in self._vc: return
+        x = self._vc[sel[0]]
+        messagebox.showinfo('Validación del corte', f'{x["Criticidad"]} · {x["Grupo"]}\n{x["Control"]}\n\n{x["Detalle"]}' + (f'\n\nQué revisar: {x["Qué revisar"]}' if x.get('Qué revisar') else ''), parent=self)
+
+    def revisar_pbix(self):
+        r = self.resultado
+        if not r: return
+        ini = r['carpeta']
+        ruta = filedialog.askopenfilename(parent=self, title='Elegir el informe Power BI del mes', initialdir=ini, filetypes=[('Power BI', '*.pbix')])
+        if not ruta: return
+        try:
+            import proceso as PRC
+            bg = pd.read_excel(r['salida'], sheet_name='Base Glosas')
+            r['pbix'] = PRC.revisar_pbix_del_mes(r['carpeta'], r['anio'], r['mes'], r['base'], bg, [ruta])
+        except Exception as e:
+            messagebox.showerror('Informe Power BI', f'No se pudo revisar el archivo ({type(e).__name__}: {e})', parent=self); return
+        self.mostrar_validacion(); self.nb.select(3)
 
     # ---------------------------------------------------------------- revisión
     def mostrar_revision(self):
@@ -762,8 +834,17 @@ class Actualizaciones(tk.Toplevel):
         ttk.Label(self, text=f'Fecha: {v.get("fecha", "") or "sin registro"}', style='Suave.TLabel').pack(anchor='w')
         if v.get('cambios'):
             ttk.Label(self, text='Novedades de esta versión:', font=app.f['neg']).pack(anchor='w', pady=(10, 2))
+            fn = tk.Frame(self, bg=BLANCO); fn.pack(fill='x')
+            sbn = ttk.Scrollbar(fn, orient='vertical')
+            tn = tk.Text(fn, wrap='word', height=8, relief='flat', bg=GRIS_FONDO, fg=GRIS_TEXTO, font=app.f['normal'], padx=8, pady=6,
+                         yscrollcommand=sbn.set, cursor='arrow', highlightthickness=0, spacing3=3)
+            sbn.configure(command=tn.yview); sbn.pack(side='right', fill='y'); tn.pack(side='left', fill='x', expand=True)
+            tn.tag_configure('item', lmargin1=4, lmargin2=22)
+            for k, c in CRIT_COLOR.items(): tn.tag_configure('c_' + k, foreground=c, font=app.f['neg'])
             for c in v['cambios']:
-                ttk.Label(self, text='•  ' + c, wraplength=700, justify='left').pack(anchor='w')
+                k, txt = separar_criticidad(c)
+                tn.insert('end', '●  ', ('item', 'c_' + k) if k else 'item'); tn.insert('end', (f'{k}: ' if k else '') + txt + '\n', 'item')
+            tn.configure(state='disabled')
 
         ttk.Label(self, text='Instalar una versión nueva', font=app.f['neg']).pack(anchor='w', pady=(16, 2))
         ttk.Label(self, text='Elija el .zip que recibió. Su configuración y el Catálogo Maestro se conservan, y la versión actual se respalda.',
@@ -865,13 +946,23 @@ class HistorialVersiones(tk.Toplevel):
         t.tag_configure('actual', font=app.f['chica'], foreground=BLANCO, background=VERDE)
         t.tag_configure('res', font=app.f['neg'], foreground=GRIS_TEXTO)
         t.tag_configure('item', lmargin1=14, lmargin2=28)
+        for k, c in CRIT_COLOR.items():
+            t.tag_configure('c_' + k, foreground=c, font=app.f['neg'])
+        t.insert('end', 'Criticidad: ', 'meta')
+        for k, d in (('Crítica', 'cambia o protege las cifras'), ('Media', 'controles y procesos'), ('Baja', 'ventana y documentos')):
+            t.insert('end', '● ', 'c_' + k); t.insert('end', f'{k} ({d})   ', 'meta')
+        t.insert('end', '\n')
         if not versiones:
             t.insert('end', 'No se encontró el resumen de versiones.')
         for v in versiones:
             t.insert('end', f'Versión {v["version"]}' + (' beta' if ACT.es_beta(v['version']) else ''), 'ver')
             if str(v['version']) == str(VERSION): t.insert('end', '   (instalada)', 'meta')
-            t.insert('end', '\n'); t.insert('end', f'{v.get("tipo", "")} · {v.get("fecha", "")}\n', 'meta')
+            t.insert('end', '\n')
+            if v.get('criticidad'): t.insert('end', '● ', 'c_' + v['criticidad']); t.insert('end', f'Criticidad {v["criticidad"].lower()} · ', 'meta')
+            t.insert('end', f'{v.get("tipo", "")} · {v.get("fecha", "")}\n', 'meta')
             t.insert('end', v.get('resumen', '') + '\n', 'res')
+            for d in v.get('cambios', []):
+                t.insert('end', '●  ', ('item', 'c_' + d.get('criticidad', 'Media'))); t.insert('end', f'{d.get("texto", "")}\n', 'item')
             for d in v.get('detalle', []): t.insert('end', f'•  {d}\n', 'item')
         t.configure(state='disabled')
         if os.path.exists(HISTORIAL):

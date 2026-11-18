@@ -1,39 +1,102 @@
 [
  {
+  "version": "1.7",
+  "fecha": "18-11-2026",
+  "tipo": "Mayor",
+  "criticidad": "Crítica",
+  "resumen": "Actualización mayor de precisión del motor. Corrige la ubicación de la ejecución de los ítems sin asignaciones (asignación \"000\") y agrega la validación del corte: contrato de entrada, cuadratura punta a punta al peso, motor sombra, coherencia de decretos y transferencias entre servicios, contrato de salida para Power BI, revisión del .pbix del mes, trazabilidad fila a fila y huella del corte. Cada cambio se clasifica por criticidad.",
+  "cambios": [
+   {
+    "criticidad": "Crítica",
+    "texto": "Asignaciones \"000\" (ítems que el servicio no abre en asignaciones): la ejecución vuelve a quedar en la misma línea que su presupuesto vigente, igual que el consolidado oficial. Corrige el detalle por ítem de la tabla de Presupuesto Consolidado en Power BI"
+   },
+   {
+    "criticidad": "Crítica",
+    "texto": "Cuadratura punta a punta al peso: requerimiento, compromiso y devengo contra los informes brutos, y presupuesto ley y vigente contra las planillas, por servicio, tipo, programa y subtítulo"
+   },
+   {
+    "criticidad": "Crítica",
+    "texto": "Motor sombra: un segundo cálculo de la ejecución, directo desde los informes brutos, debe coincidir con el consolidado por programa y subtítulo"
+   },
+   {
+    "criticidad": "Crítica",
+    "texto": "Coherencia entre servicios: alerta en rojo si un decreto queda dentro del vigente en un servicio y fuera en otro, o si una transferencia intrapartida no cuadra con el ingreso del servicio que la recibe"
+   },
+   {
+    "criticidad": "Crítica",
+    "texto": "Contrato de entrada: detecta montos con fórmula sin calcular en las planillas, montos no numéricos o columnas faltantes en los informes, filas repetidas y presupuestos no balanceados (gastos distinto de ingresos)"
+   },
+   {
+    "criticidad": "Media",
+    "texto": "Contrato de salida para Power BI: columnas, tipos, nombres únicos por código, regiones, valores que usan los filtros del informe y comparación con el consolidado del mes anterior"
+   },
+   {
+    "criticidad": "Media",
+    "texto": "Revisión del informe Power BI (.pbix) del mes, solo lectura: títulos con el mes y año, umbrales del semáforo de avance (mes/12) y filtros que no encuentran su valor en los datos"
+   },
+   {
+    "criticidad": "Media",
+    "texto": "Los rojos de la validación pasan a la pestaña Revisión y, como los demás, bloquean la hoja de control hasta corregirlos o explicarlos"
+   },
+   {
+    "criticidad": "Media",
+    "texto": "Trazabilidad fila a fila: cada fila del consolidado indica el informe y la fila de origen; cada fila de las planillas indica la fecha aplicada al decreto y si quedó dentro del vigente"
+   },
+   {
+    "criticidad": "Media",
+    "texto": "Huella del corte: con los mismos insumos, corte y versión, el consolidado debe ser idéntico; si no lo es, se marca en rojo"
+   },
+   {
+    "criticidad": "Baja",
+    "texto": "Nueva pestaña Validación con el semáforo del corte y nuevo archivo \"MINAGRI Validación a <mes> <año>.xlsx\""
+   },
+   {
+    "criticidad": "Baja",
+    "texto": "Historial de versiones y novedades con la criticidad de cada cambio: rojo (crítica), amarillo (media) y verde (baja)"
+   }
+  ]
+ },
+ {
   "version": "1.6i",
   "fecha": "18-11-2026",
   "tipo": "Beta",
-  "resumen": "Corrección de la ventana Historial de versiones en Mac: los botones Cerrar y Abrir el historial completo (PDF) no respondían cuando la ventana se abría con otra ventana activa (por ejemplo, desde Actualizaciones). En Mac, si un archivo no se puede abrir se muestra el motivo, y cualquier error de la ventana se muestra y queda registrado en respaldos/errores.log. Incluye el manual nuevo de la 1.6j."
+  "resumen": "Corrección de la ventana Historial de versiones en Mac: los botones Cerrar y Abrir el historial completo (PDF) no respondían cuando la ventana se abría con otra ventana activa (por ejemplo, desde Actualizaciones). En Mac, si un archivo no se puede abrir se muestra el motivo, y cualquier error de la ventana se muestra y queda registrado en respaldos/errores.log. Incluye el manual nuevo de la 1.6j.",
+  "criticidad": "Baja"
  },
  {
   "version": "1.6j",
   "fecha": "18-11-2026",
   "tipo": "Beta",
-  "resumen": "Manual de usuario rehecho a fondo, con guía rápida del mes, explicación de cada paso, 19 imágenes actualizadas de la versión 1.6, problemas frecuentes y glosario. Ajustes menores de la ventana: pestañas con nombres que se leen completos, botones de Ideas Fuerza siempre visibles y marcas por servicio correctas cuando hay un informe duplicado."
+  "resumen": "Manual de usuario rehecho a fondo, con guía rápida del mes, explicación de cada paso, 19 imágenes actualizadas de la versión 1.6, problemas frecuentes y glosario. Ajustes menores de la ventana: pestañas con nombres que se leen completos, botones de Ideas Fuerza siempre visibles y marcas por servicio correctas cuando hay un informe duplicado.",
+  "criticidad": "Baja"
  },
  {
   "version": "1.6",
   "fecha": "18-11-2026",
   "tipo": "Mayor",
-  "resumen": "Actualización mayor que reúne las betas 1.5j a 1.5g y agrega: revisión previa de los insumos antes de generar (los errores impiden generar); una ventana para agregar al Catálogo Maestro lo que el mes trae y el catálogo no tiene, con respaldo y opción de catálogo compartido; control de decretos de la carpeta de PDF que faltan en las planillas; Ideas Fuerza y resumen ejecutivo en Word con formato de minuta; bitácora de generaciones con huella digital de los insumos; asistente de cambio de año; aviso cuando llegan los 12 informes; y pruebas automáticas que vuelven a generar septiembre y octubre antes de publicar. Las cifras del consolidado no cambian."
+  "resumen": "Actualización mayor que reúne las betas 1.5j a 1.5g y agrega: revisión previa de los insumos antes de generar (los errores impiden generar); una ventana para agregar al Catálogo Maestro lo que el mes trae y el catálogo no tiene, con respaldo y opción de catálogo compartido; control de decretos de la carpeta de PDF que faltan en las planillas; Ideas Fuerza y resumen ejecutivo en Word con formato de minuta; bitácora de generaciones con huella digital de los insumos; asistente de cambio de año; aviso cuando llegan los 12 informes; y pruebas automáticas que vuelven a generar septiembre y octubre antes de publicar. Las cifras del consolidado no cambian.",
+  "criticidad": "Crítica"
  },
  {
   "version": "1.5g",
   "fecha": "18-11-2026",
   "tipo": "Beta",
-  "resumen": "Revisión simplificada: solo quedan las incidencias con impacto cuantitativo o cualitativo en el informe (cuadratura del devengo, devengo sin presupuesto vigente, devengo menor que el mes anterior, transferencias intrapartida descuadradas y decretos cuya fecha cambia el vigente del mes). Ya no se revisan avances cercanos o sobre el vigente, glosas, saltos del mes ni asignaciones sin ejecución: en octubre 2026, de 44 alertas a 5. Incluye la primera versión de prueba para macOS con Apple Silicon. El actualizador consulta la API de GitHub (una versión recién publicada aparece de inmediato) y el aviso al iniciar funciona también en macOS. El Catálogo Maestro incorpora el nombre de las asignaciones \"000\" (ítems no abiertos en asignaciones, como 2601000 Devoluciones)."
+  "resumen": "Revisión simplificada: solo quedan las incidencias con impacto cuantitativo o cualitativo en el informe (cuadratura del devengo, devengo sin presupuesto vigente, devengo menor que el mes anterior, transferencias intrapartida descuadradas y decretos cuya fecha cambia el vigente del mes). Ya no se revisan avances cercanos o sobre el vigente, glosas, saltos del mes ni asignaciones sin ejecución: en octubre 2026, de 44 alertas a 5. Incluye la primera versión de prueba para macOS con Apple Silicon. El actualizador consulta la API de GitHub (una versión recién publicada aparece de inmediato) y el aviso al iniciar funciona también en macOS. El Catálogo Maestro incorpora el nombre de las asignaciones \"000\" (ítems no abiertos en asignaciones, como 2601000 Devoluciones).",
+  "criticidad": "Media"
  },
  {
   "version": "1.5h",
   "fecha": "18-11-2026",
   "tipo": "Beta",
-  "resumen": "Fechas de decretos según toma de razón. El agente lee el PDF de cada decreto en DIPRES (o en una carpeta local) y, si el decreto está identificado, aplica la fecha de toma de razón a todos los servicios por igual. Si no está identificado en DIPRES (en trámite de toma de razón o aún no publicado) se mantiene con la fecha de la planilla del servicio: ningún decreto se descarta. La hoja Decretos del archivo de revisión deja la trazabilidad de cada fecha aplicada. Las planillas de Presupuesto Vigente no se modifican. Desde esta versión las correcciones se numeran como betas acumulativas de la 1.5 (letras de la j a la a) hasta la 1.6."
+  "resumen": "Fechas de decretos según toma de razón. El agente lee el PDF de cada decreto en DIPRES (o en una carpeta local) y, si el decreto está identificado, aplica la fecha de toma de razón a todos los servicios por igual. Si no está identificado en DIPRES (en trámite de toma de razón o aún no publicado) se mantiene con la fecha de la planilla del servicio: ningún decreto se descarta. La hoja Decretos del archivo de revisión deja la trazabilidad de cada fecha aplicada. Las planillas de Presupuesto Vigente no se modifican. Desde esta versión las correcciones se numeran como betas acumulativas de la 1.5 (letras de la j a la a) hasta la 1.6.",
+  "criticidad": "Crítica"
  },
  {
   "version": "1.5i",
   "fecha": "18-11-2026",
   "tipo": "Beta",
-  "resumen": "Los gastos excedibles por ley salen en amarillo (excedible por regularizar) y no bloquean la hoja de control; la lista está en Reglas de revisión.xlsx, hoja Excedibles."
+  "resumen": "Los gastos excedibles por ley salen en amarillo (excedible por regularizar) y no bloquean la hoja de control; la lista está en Reglas de revisión.xlsx, hoja Excedibles.",
+  "criticidad": "Media"
  },
  {
   "version": "1.5j",
@@ -46,13 +109,15 @@
    "Los rojos se corrigen en el origen o se aceptan con un comentario; la hoja de control para la jefatura se exporta solo sin rojos sin explicar.",
    "La revisión se guarda en archivos aparte: el consolidado que lee Power BI y el Catálogo Maestro no se tocan.",
    "Umbrales ajustables en Reglas de revisión.xlsx."
-  ]
+  ],
+  "criticidad": "Media"
  },
  {
   "version": "1.5",
   "fecha": "17-11-2026",
   "tipo": "Menor",
-  "resumen": "El botón Historial de versiones muestra este resumen en una ventana, en vez de abrir el PDF."
+  "resumen": "El botón Historial de versiones muestra este resumen en una ventana, en vez de abrir el PDF.",
+  "criticidad": "Baja"
  },
  {
   "version": "1.4",
@@ -65,13 +130,15 @@
    "Avisos nuevos: código y nombre con regiones distintas, C.F. nuevo sin código, Oficina Central fuera de Nivel Central y catálogo antiguo sin códigos.",
    "Las fechas de corte escritas como texto (DD-MM-AAAA) se leen correctamente.",
    "El catálogo corregido llega con el zip interno; desde GitHub llega solo el programa."
-  ]
+  ],
+  "criticidad": "Crítica"
  },
  {
   "version": "1.3.1",
   "fecha": "17-11-2026",
   "tipo": "Corrección",
-  "resumen": "Las actualizaciones se buscan en el archivo version.json del repositorio de GitHub."
+  "resumen": "Las actualizaciones se buscan en el archivo version.json del repositorio de GitHub.",
+  "criticidad": "Media"
  },
  {
   "version": "1.3",
@@ -83,7 +150,8 @@
    "Botón Buscar en GitHub en Actualizaciones y búsqueda en GitHub desde 5_ACTUALIZAR_AGENTE.bat.",
    "Antes de instalar se verifica que el archivo descargado sea la versión anunciada.",
    "En GitHub va solo el programa: sin Catálogo Maestro, manual ni historial."
-  ]
+  ],
+  "criticidad": "Media"
  },
  {
   "version": "1.2",
@@ -95,7 +163,8 @@
    "Botón ‹ Inicio en el agente para volver a la bienvenida.",
    "Si una planilla de Presupuesto Vigente trae las columnas de código vacías (fórmulas sin calcular), el código se toma del nombre y se informa en Avisos.",
    "Acceso directo renombrado a Agentes UPROGE."
-  ]
+  ],
+  "criticidad": "Baja"
  },
  {
   "version": "1.1",
@@ -107,13 +176,15 @@
    "Respaldo automático de la versión anterior en la carpeta respaldos.",
    "Se conservan siempre config.ini y el Catálogo Maestro.",
    "5_ACTUALIZAR_AGENTE.bat para la consola."
-  ]
+  ],
+  "criticidad": "Media"
  },
  {
   "version": "1.0.1",
   "fecha": "17-11-2026",
   "tipo": "Corrección",
-  "resumen": "El borrador de Ideas Fuerza ya no se detiene con filas sin Subtítulo; se informan en Avisos."
+  "resumen": "El borrador de Ideas Fuerza ya no se detiene con filas sin Subtítulo; se informan en Avisos.",
+  "criticidad": "Media"
  },
  {
   "version": "1.0",
@@ -126,18 +197,21 @@
    "Botones para abrir el Excel, ver y copiar las Ideas Fuerza, abrir la carpeta del mes y configurar carpetas.",
    "Colores del Kit Digital gob.cl y acceso directo en el Escritorio.",
    "La consola se mantiene: ambas versiones usan el mismo proceso y dan el mismo resultado."
-  ]
+  ],
+  "criticidad": "Media"
  },
  {
   "version": "0.10",
   "fecha": "17-11-2026",
   "tipo": "Menor",
-  "resumen": "Borrador de Ideas Fuerza redactado desde las cifras, comparado con el mes anterior y el año anterior, con marcadores [Completar] para lo cualitativo."
+  "resumen": "Borrador de Ideas Fuerza redactado desde las cifras, comparado con el mes anterior y el año anterior, con marcadores [Completar] para lo cualitativo.",
+  "criticidad": "Media"
  },
  {
   "version": "0.x",
   "fecha": "17-11-2026",
   "tipo": "Prueba",
-  "resumen": "Prueba preliminar: motor que lee los informes de SIGFE II y del ERP de CONAF, Catálogo Maestro único y consolidado con las hojas que lee Power BI."
+  "resumen": "Prueba preliminar: motor que lee los informes de SIGFE II y del ERP de CONAF, Catálogo Maestro único y consolidado con las hojas que lee Power BI.",
+  "criticidad": "Crítica"
  }
 ]

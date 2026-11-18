@@ -51,6 +51,10 @@ def main():
         rs = RV.resumen(r['revision'])
         print(f'\nRevisión: {rs["rojos"]} rojo(s) ({rs["rojos_pendientes"]} sin explicar) y {rs["amarillos"]} amarillo(s). Detalle en:\n  {r["ruta_revision"]}')
         print('  Para comentar las alertas y exportar la hoja de control use la versión de ventana (pestaña Revisión).')
+    if r.get('semaforo') is not None:
+        print('\nValidación del corte (detalle en ' + os.path.basename(r.get('ruta_validacion') or '') + '):')
+        for x in r['semaforo'].itertuples(): print(f'  [{x.Estado:8}] {x.Control}: {x.Resultado}')
+        for x in r.get('pbix') or []: print(f'  [{x["Criticidad"]:8}] Power BI · {x["Elemento"]}: {x["Detalle"]}')
     if val is not None:
         print('\nComparación con el consolidado oficial (hoja "Validación"):'); print(val.to_string(index=False))
 
