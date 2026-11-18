@@ -24,7 +24,9 @@ HISTORIAL = os.path.join(RAIZ_AGENTE, 'Historial de versiones.pdf')
 def abrir(path):
     try:
         if sys.platform.startswith('win'): os.startfile(path)
-        elif sys.platform == 'darwin': subprocess.Popen(['open', path])
+        elif sys.platform == 'darwin':
+            r = subprocess.run(['/usr/bin/open', path], capture_output=True, text=True, timeout=20)
+            if r.returncode != 0: raise OSError(r.stderr.strip() or f'open terminó con código {r.returncode}')
         else: subprocess.Popen(['xdg-open', path])
     except Exception as e:
         messagebox.showerror('No se pudo abrir', f'No se pudo abrir:\n{path}\n\n{e}')
@@ -51,6 +53,22 @@ class App(tk.Tk):
         self.after(100, self.cargar_config)
         self.after(150, self._procesar_cola)
         self.after(VIGILAR_MS, self.vigilar_informes)
+
+    def report_callback_exception(self, exc, val, tb):
+        """Un error en un botón o ventana no debe pasar en silencio (en Mac no hay consola): se muestra y se guarda en
+        respaldos/errores.log para enviarlo."""
+        texto = ''.join(traceback.format_exception(exc, val, tb))
+        try:
+            d = os.path.join(RAIZ_AGENTE, 'respaldos'); os.makedirs(d, exist_ok=True)
+            with open(os.path.join(d, 'errores.log'), 'a', encoding='utf-8') as f:
+                f.write(f'--- {datetime.datetime.now():%d-%m-%Y %H:%M:%S} · versión {VERSION}\n{texto}\n')
+        except Exception:
+            pass
+        try:
+            messagebox.showerror('Error en la ventana', f'{exc.__name__}: {val}\n\nEl detalle quedó en respaldos/errores.log del agente; '
+                                 'envíelo a Manuel.')
+        except Exception:
+            pass
 
     # ---------------------------------------------------------------- apariencia
     def _fuentes(self):
@@ -858,8 +876,33 @@ class HistorialVersiones(tk.Toplevel):
         t.configure(state='disabled')
         if os.path.exists(HISTORIAL):
             ttk.Button(b, text='Abrir el historial completo (PDF)', style='Secundario.TButton', command=lambda: abrir(HISTORIAL)).pack(side='left')
-        ttk.Button(b, text='Cerrar', style='Secundario.TButton', command=self.destroy).pack(side='right')
-        self.bind('<Escape>', lambda e: self.destroy())
+        ttk.Button(b, text='Cerrar', style='Secundario.TButton', command=self.cerrar).pack(side='right')
+        self.bind('<Escape>', lambda e: self.cerrar())
+        self.protocol('WM_DELETE_WINDOW', self.cerrar)
+        # Si se abre desde una ventana que tiene la captura de eventos (Actualizaciones), en macOS esa ventana
+        # sigue recibiendo los clics y los botones de esta no responden: la captura pasa a esta ventana y se
+        # devuelve al cerrar.
+        self._grab_anterior = None
+        try:
+            g = self.grab_current()
+            self._grab_anterior = g if g is not None and g is not self else None
+            self.lift(); self.focus_force(); self.after(50, self._tomar_grab)
+        except tk.TclError:
+            pass
+
+    def _tomar_grab(self):
+        try: self.grab_set()
+        except tk.TclError: pass
+
+    def cerrar(self):
+        try: self.grab_release()
+        except tk.TclError: pass
+        anterior = self._grab_anterior
+        self.destroy()
+        try:
+            if anterior is not None and anterior.winfo_exists(): anterior.grab_set(); anterior.focus_force()
+        except tk.TclError:
+            pass
 
 
 class VerIdeas(tk.Toplevel):

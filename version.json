@@ -1,8 +1,11 @@
 {
   "programa": "Agentes de Apoyo a la Gestión – UPROGE",
-  "version": "1.6j",
+  "version": "1.6i",
   "fecha": "18-11-2026",
   "cambios": [
+    "Historial de versiones: los botones Cerrar y Abrir el historial completo (PDF) no respondían en Mac cuando la ventana se abría con otra ventana activa; ahora siempre responden",
+    "En Mac, si un archivo no se puede abrir se muestra el motivo",
+    "Cualquier error de la ventana se muestra en pantalla y queda en respaldos/errores.log para enviarlo",
     "Manual de usuario rehecho: guía rápida del mes, explicación paso a paso y 19 imágenes de la versión 1.6, problemas frecuentes y glosario",
     "Ventana: pestañas con nombres más cortos para que se lean completas; los botones de la ventana de Ideas Fuerza siempre visibles",
     "Paso 1: si hay un informe duplicado, igual se marcan los servicios que tienen sus informes"

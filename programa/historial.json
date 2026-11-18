@@ -1,5 +1,11 @@
 [
  {
+  "version": "1.6i",
+  "fecha": "18-11-2026",
+  "tipo": "Beta",
+  "resumen": "Corrección de la ventana Historial de versiones en Mac: los botones Cerrar y Abrir el historial completo (PDF) no respondían cuando la ventana se abría con otra ventana activa (por ejemplo, desde Actualizaciones). En Mac, si un archivo no se puede abrir se muestra el motivo, y cualquier error de la ventana se muestra y queda registrado en respaldos/errores.log. Incluye el manual nuevo de la 1.6j."
+ },
+ {
   "version": "1.6j",
   "fecha": "18-11-2026",
   "tipo": "Beta",
